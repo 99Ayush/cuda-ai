@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -125,6 +124,8 @@ const limiter = rateLimit({
   max: 100,
   message: { error: "SYSTEM_THROTTLE: Rate limit exceeded." }
 });
+
+app.get('/health', (req, res) => res.json({ status: 'UP', node: process.version }));
 
 app.get('/', (req, res) => {
   const distPath = path.join(__dirname, '../client/dist/index.html');

@@ -12,15 +12,15 @@ const { createClient } = require('@supabase/supabase-js');
 const cleanKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
 async function callGeminiDirect(prompt) {
-  const models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-pro"];
+  const models = ["gemini-1.5-flash", "gemini-pro", "gemini-1.0-pro", "gemini-1.5-flash-8b"];
   let lastError;
 
   for (const model of models) {
     try {
-      // Try v1 first, then v1beta
       const versions = ['v1', 'v1beta'];
       for (const ver of versions) {
         const url = `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${cleanKey}`;
+        console.log(`[CUDA_CORE]: TRYING_AI_NODE: ${ver}/${model}`);
         const response = await axios.post(url, {
           contents: [{ parts: [{ text: prompt }] }]
         }, { timeout: 8000 });

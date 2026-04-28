@@ -1,5 +1,6 @@
-require('dotenv').config();
+// require('dotenv').config(); // Removed for Vercel production
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -292,7 +293,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname)); // Serve static files from root (index.html, app.jsx, etc.)
+app.use(express.static(path.join(__dirname, '..'))); // Serve static files from root folder
 
 
 const limiter = rateLimit({

@@ -366,5 +366,8 @@ app.post('/analyze-claim', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-// Removed app.listen for Vercel deployment
+app.listen(PORT, () => {
+  console.log(`[CUDA_CORE]: SYSTEM_LIVE_ON_PORT_${PORT}`);
+});
+
 module.exports = app;

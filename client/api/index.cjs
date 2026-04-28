@@ -173,17 +173,22 @@ const limiter = rateLimit({
 
 app.use('/analyze-claim', limiter);
 
-app.get('/api/history', async (req, res) => {
+app.get(['/', '/api/health'], (req, res) => {
+  res.json({ status: 'UP', service: 'CUDA_AI_BACKEND' });
+});
+
+app.get(['/history', '/api/history'], async (req, res) => {
   try { res.json(await getHistory()); } 
   catch (error) { res.status(500).json({ error: 'History error.' }); }
 });
 
-app.post('/api/analyze-claim', async (req, res) => {
+app.post(['/analyze-claim', '/api/analyze-claim'], async (req, res) => {
   try {
     const { text, imageUrl, pageUrl } = req.body;
     const result = await analyzeClaim({ text, imageUrl, pageUrl });
     res.json(result);
   } catch (error) {
+    console.error('SERVER_ERROR:', error);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });

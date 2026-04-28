@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/analyze-claim",
-      "destination": "/api/index.cjs"
+      "destination": "/api/index.js"
     },
     {
       "source": "/history",
-      "destination": "/api/index.cjs"
+      "destination": "/api/index.js"
     }
   ]
 }

@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/analyze-claim",
+      "destination": "/api/index.cjs"
+    },
+    {
+      "source": "/history",
+      "destination": "/api/index.cjs"
+    }
+  ]
+}

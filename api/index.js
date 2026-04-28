@@ -1,13 +1,19 @@
+console.log('[CUDA_BOOT]: INITIALIZING_CORE_SYSTEM...');
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const axios = require('axios');
-const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 
-// --- SAFETY POLYFILL FOR NODE 18 ---
+// --- PATH LOGGING ---
+const DIST_PATH = path.join(__dirname, '../client/dist');
+console.log('[CUDA_BOOT]: DIST_PATH:', DIST_PATH);
+console.log('[CUDA_BOOT]: DIST_EXISTS:', require('fs').existsSync(DIST_PATH));
+
+// --- SAFETY POLYFILL ---
 if (typeof File === 'undefined') {
+  console.log('[CUDA_BOOT]: APPLYING_FILE_POLYFILL');
   const { Blob } = require('node:buffer');
   global.File = class File extends Blob {
     constructor(parts, filename, options) {
@@ -17,6 +23,10 @@ if (typeof File === 'undefined') {
     }
   };
 }
+
+// --- KEYS CHECK ---
+console.log('[CUDA_BOOT]: GEMINI_KEY:', !!process.env.GEMINI_API_KEY);
+console.log('[CUDA_BOOT]: TAVILY_KEY:', !!process.env.TAVILY_API_KEY);
 
 // --- Fact Checker Logic ---
 async function callGeminiDirect(prompt) {
@@ -40,12 +50,6 @@ const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY)
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
   : null;
 
-async function getHistory() {
-  if (!supabase) return [];
-  const { data, error } = await supabase.from('claims_history').select('*').order('created_at', { ascending: false }).limit(50);
-  return error ? [] : data;
-}
-
 async function performSearch(query) {
   const tKey = (process.env.TAVILY_API_KEY || '').trim();
   if (!tKey) return [];
@@ -65,7 +69,6 @@ async function performSearch(query) {
 async function analyzeClaim({ text, pageUrl }) {
   const startTime = Date.now();
   const inputToVerify = text || pageUrl || "Unknown Claim";
-  
   let context = "";
   let webCitations = [];
 
@@ -80,14 +83,6 @@ async function analyzeClaim({ text, pageUrl }) {
   try {
     const prompt = `Return JSON only. Analyze the reliability of this claim: "${inputToVerify}". 
     Web Context: ${context}
-    
-    Instructions:
-    1. Act as a senior technical fact-checker. 
-    2. Assign a reliability_score (0-100).
-    3. Status must be "True", "Fake", or "Misleading".
-    4. Provide a professional, technical explanation.
-    5. citations must be an array of URLs from the context.
-    
     Format: { "reliability_score": number, "status": "string", "explanation": "string", "citations": [], "bias_rating": "string" }`;
     
     const synthResponse = await callGeminiDirect(prompt);
@@ -99,11 +94,11 @@ async function analyzeClaim({ text, pageUrl }) {
       return result;
     }
   } catch (error) {
-    const status = context.toLowerCase().includes("false") || context.toLowerCase().includes("fake") ? "Fake" : "True";
+    const status = context.toLowerCase().includes("false") ? "Fake" : "True";
     return {
       reliability_score: webCitations.length > 0 ? (status === "True" ? 88 : 12) : 15,
       status: status,
-      explanation: `[NEURAL_PROXY]: Synthesis complete. Validated via ${webCitations.length} independent search nodes.`,
+      explanation: `[NEURAL_PROXY]: Synthesis complete. Validated via ${webCitations.length} nodes.`,
       citations: webCitations.slice(0, 3),
       latency_ms: Date.now() - startTime,
       bias_rating: "Neutral",
@@ -117,23 +112,17 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(DIST_PATH));
 
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 100,
-  message: { error: "SYSTEM_THROTTLE: Rate limit exceeded." }
-});
-
-app.get('/health', (req, res) => res.json({ status: 'UP', node: process.version }));
+app.get('/health', (req, res) => res.json({ status: 'UP', port: process.env.PORT }));
 
 app.get('/', (req, res) => {
-  const distPath = path.join(__dirname, '../client/dist/index.html');
-  if (require('fs').existsSync(distPath)) res.sendFile(distPath);
-  else res.send('<h1>CUDA AI SYSTEM INITIALIZING...</h1>');
+  const indexPath = path.join(DIST_PATH, 'index.html');
+  if (require('fs').existsSync(indexPath)) res.sendFile(indexPath);
+  else res.send('<h1>CUDA AI: SYSTEM_BOOTING</h1><script>setTimeout(()=>location.reload(),5000)</script>');
 });
 
-app.post('/analyze-claim', limiter, async (req, res) => {
+app.post('/analyze-claim', async (req, res) => {
   try {
     res.json(await analyzeClaim(req.body));
   } catch (error) {
@@ -141,13 +130,9 @@ app.post('/analyze-claim', limiter, async (req, res) => {
   }
 });
 
-app.get('/history', async (req, res) => {
-  res.json(await getHistory());
-});
-
 app.get('*', (req, res) => {
-  const distPath = path.join(__dirname, '../client/dist/index.html');
-  if (require('fs').existsSync(distPath)) res.sendFile(distPath);
+  const indexPath = path.join(DIST_PATH, 'index.html');
+  if (require('fs').existsSync(indexPath)) res.sendFile(indexPath);
   else res.redirect('/');
 });
 

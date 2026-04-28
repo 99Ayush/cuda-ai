@@ -182,8 +182,6 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
 
   console.log('[CUDA_CORE]: INITIALIZING_CUDA_CONSENSUS', { text });
   
-  const investigatorModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
-  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
 
   let context = "";
   let webCitations = [];

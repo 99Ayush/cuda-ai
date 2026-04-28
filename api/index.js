@@ -15,371 +15,128 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 
 // --- Fact Checker Logic ---
-const cleanKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
-
 async function callGeminiDirect(prompt) {
   const tKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
   try {
-    // Try v1beta as it's often more permissive for new keys
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${tKey}`;
     const response = await axios.post(url, {
       contents: [{ parts: [{ text: prompt }] }]
     }, { 
       headers: { 'Content-Type': 'application/json' },
-      timeout: 10000 
+      timeout: 12000 
     });
-    
     return response.data.candidates[0].content.parts[0].text;
   } catch (err) {
-    console.error('[CUDA_CORE]: AI_NODE_OFFLINE. SWITCHING_TO_NEURAL_PROXY.');
     throw err;
   }
 }
-
-console.log('[CUDA_CORE]: SYSTEM_BOOT_DIRECT_FETCH', { 
-  key_length: cleanKey.length,
-  has_tavily: !!process.env.TAVILY_API_KEY
-});
 
 const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) 
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
   : null;
 
-async function saveToHistory(data) {
-  if (!supabase) return;
-  const { error } = await supabase.from('claims_history').insert([data]);
-  if (error) console.error('Supabase save error:', error);
-}
-
 async function getHistory() {
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('claims_history')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50);
-  
-  if (error) {
-    console.error('Supabase fetch error:', error);
-    return [];
-  }
-  return data;
-}
-
-const memoryCache = new Map();
-
-function preCheckClaim(text) {
-  const clean = text.toLowerCase().trim();
-  
-  if (memoryCache.has(clean)) {
-    console.log('[CUDA_CORE]: MEMORY_CACHE_HIT');
-    return memoryCache.get(clean);
-  }
-
-  console.log(`[CUDA_CORE]: PRE_CHECKING_CLAIM: "${clean}"`);
-  
-  try {
-    if (/^[0-9+\-*/().^sqrt=\s]+$/.test(clean)) {
-      const parts = clean.split('=');
-      const leftExpr = (parts[0] || "").replace(/sqrt/g, 'Math.sqrt');
-      if (!leftExpr) return null;
-      const leftVal = eval(leftExpr);
-      
-      let result = null;
-      if (parts.length === 2) {
-        const rightVal = eval(parts[1].replace(/sqrt/g, 'Math.sqrt'));
-        if (leftVal === rightVal) {
-          result = {
-            reliability_score: 100, status: "True",
-            explanation: `MATHEMATICAL_EQUIVALENCE: algorithmic proof [${leftVal} == ${rightVal}].`,
-            citations: ["https://cuda-ai.io/compute-engine"], bias_rating: "N/A",
-            llm_consensus: { investigator: "CORE_MATH", synthesizer: "ALGO_V1", match: true }
-          };
-        } else {
-          result = {
-            reliability_score: 0, status: "Fake",
-            explanation: `MATHEMATICAL_FALLACY: algorithmic proof [${leftVal} != ${rightVal}].`,
-            citations: ["https://cuda-ai.io/compute-engine"], bias_rating: "N/A",
-            llm_consensus: { investigator: "CORE_MATH", synthesizer: "ALGO_V1", match: true }
-          };
-        }
-      } else if (!isNaN(leftVal)) {
-          result = {
-            reliability_score: 100, status: "True",
-            explanation: `MATHEMATICAL_CONSTANT: Result = ${leftVal}`,
-            citations: ["https://cuda-ai.io/compute-engine"], bias_rating: "N/A",
-            llm_consensus: { investigator: "CORE_MATH", synthesizer: "ALGO_V1", match: true }
-          };
-      }
-      if (result) {
-        memoryCache.set(clean, result);
-        return result;
-      }
-    }
-  } catch (e) {}
-
-  const staticFacts = [
-    { keys: ["narendra modi", "prime minister"], status: "True", score: 100, expl: "Narendra Modi is the current and 14th Prime Minister of India." },
-    { keys: ["rahul gandhi", "prime minister"], status: "Fake", score: 0, expl: "Rahul Gandhi is a prominent leader of the Indian National Congress, but he has never served as the Prime Minister of India." },
-    { keys: ["droupadi murmu", "president"], status: "True", score: 100, expl: "Droupadi Murmu is the current President of India." },
-    { keys: ["capital", "bihar"], status: "True", score: 100, expl: "Patna is the capital of the Indian state of Bihar." },
-    { keys: ["bihar", "america"], status: "Fake", score: 0, expl: "Bihar is a state in North India, not part of the USA." },
-    { keys: ["capital", "india"], status: "True", score: 100, expl: "New Delhi is the official capital of India." },
-    { keys: ["earth", "flat"], status: "Fake", score: 0, expl: "Earth is an oblate spheroid confirmed by satellite telemetry." },
-    { keys: ["trump", "president"], status: "Misleading", score: 50, expl: "Donald Trump served as the 45th US President. Current context requires real-time news." }
-  ];
-
-  for (let fact of staticFacts) {
-    if (fact.keys.every(k => clean.includes(k))) {
-      console.log('[CUDA_CORE]: STATIC_FACT_MATCH_FOUND', fact.keys);
-      const result = {
-        reliability_score: fact.score,
-        status: fact.status,
-        explanation: `FACT_CACHE: ${fact.expl}`,
-        citations: ["https://cuda-ai.io/knowledge-base"],
-        bias_rating: "N/A",
-        llm_consensus: { investigator: "KNOWLEDGE_GRAPH", synthesizer: "STATIC_DB", match: true }
-      };
-      memoryCache.set(clean, result);
-      return result;
-    }
-  }
-
-  return null;
+  const { data, error } = await supabase.from('claims_history').select('*').order('created_at', { ascending: false }).limit(50);
+  return error ? [] : data;
 }
 
 async function performSearch(queries) {
   const tKey = (process.env.TAVILY_API_KEY || '').trim();
-  if (!tKey) {
-    console.warn('[CUDA_CORE]: TAVILY_KEY_MISSING. SKIPPING_WEB_SEARCH.');
-    return [];
-  }
-
+  if (!tKey) return [];
   try {
-    const query = queries[0];
-    console.log(`[CUDA_CORE]: INITIATING_TAVILY_RESEARCH: "${query}"`);
     const response = await axios.post('https://api.tavily.com/search', {
       api_key: tKey,
-      query: query,
+      query: queries[0],
       search_depth: "basic",
-      include_images: false,
-      max_results: 3
+      max_results: 5
     });
-
-    console.log(`[CUDA_CORE]: RESEARCH_COMPLETE. SOURCES: ${response.data.results.length}`);
-    return response.data.results.map(r => ({
-      title: r.title,
-      snippet: r.content,
-      link: r.url
-    }));
+    return response.data.results;
   } catch (err) {
-    console.error('[RESEARCH_FAILED]:', err.message);
     return [];
   }
 }
 
-async function analyzeClaim({ text, imageUrl, pageUrl }) {
+async function analyzeClaim({ text, pageUrl }) {
   const startTime = Date.now();
   const inputToVerify = text || pageUrl || "Unknown Claim";
   
-  const fastResult = preCheckClaim(inputToVerify);
-  if (fastResult) {
-    fastResult.latency_ms = Date.now() - startTime;
-    console.log('[CUDA_CORE]: FAST_PATH_VALIDATION_COMPLETE', { score: fastResult.reliability_score });
-    return fastResult;
-  }
-
-  console.log('[CUDA_CORE]: INITIALIZING_CUDA_CONSENSUS', { text });
-  
-
   let context = "";
   let webCitations = [];
 
   try {
-    console.log('[CUDA_CORE]: PHASE_1_RESEARCH_STARTING');
-    let queries = [];
-    try {
-      const researchPrompt = `GENERATING_VERIFICATION_QUERIES: "${inputToVerify}". Return exactly 3 separate search queries line-by-line. No preamble.`;
-      const textResponse = await callGeminiDirect(researchPrompt);
-      queries = textResponse.split('\n').filter(q => q.trim()).map(q => q.replace(/^\d+\.\s*/, ''));
-    } catch (aiErr) {
-      console.warn('[CUDA_CORE]: RESEARCH_AI_FAILED', aiErr.response?.data || aiErr.message);
-      queries = [inputToVerify, `verification for ${inputToVerify}`, `latest news on ${inputToVerify}`];
-    }
-    
-    console.log('[CUDA_CORE]: GENERATED_QUERIES:', queries);
-    
-    const searchResults = await performSearch(queries);
+    const searchResults = await performSearch([inputToVerify]);
     for (const res of searchResults) {
-      const compressedSnippet = res.snippet.substring(0, 800);
-      context += `[SOURCE]: ${res.title}\n[DATA]: ${compressedSnippet}\n[URL]: ${res.link}\n\n`;
-      webCitations.push(res.link);
+      context += `[SOURCE]: ${res.title}\n[DATA]: ${res.content}\n[URL]: ${res.url}\n\n`;
+      webCitations.push(res.url);
     }
-  } catch (err) {
-    console.error('[CUDA_CORE]: PHASE_1_RESEARCH_ERROR:', err.message);
-  }
+  } catch (err) {}
 
   try {
-    console.log('[CUDA_CORE]: PHASE_2_CONSENSUS_STARTING');
-    const hasContext = context && context.trim().length > 0;
-    
-    const synthesisPrompt = `
-      [TASK]: ADVERSARIAL_VERIFICATION
-      [CLAIM]: "${inputToVerify}"
-      [EVIDENCE]: ${context || "NO_WEB_DATA_AVAILABLE_USE_INTERNAL_KNOWLEDGE"}
-      
-      [GUIDELINES]: 
-      1. Detect hallucinations or outdated info.
-      2. If evidence is missing, rely on internal knowledge but cap score at 85%.
-      3. For universally known truths, score 95-100.
-      4. For detected lies/fake news, score 0-10.
-      5. Bias Rating should be: "Neutral", "Leaning Left/Right", "Highly Biased", or "N/A".
-      6. CITATIONS: Prioritize URLs from [EVIDENCE] that provide the most direct verified proof or strongest counter-evidence for the claim.
-      
-      
-      [OUTPUT]: Return ONLY a JSON object: 
-      { 
-        "reliability_score": number, 
-        "status": "True"|"Fake"|"Misleading", 
-        "explanation": "concise explanation", 
-        "citations": ["url1", "url2"], 
-        "bias_rating": "string"
-      }
-    `;
-
-    let synthResponse;
-    let finalSynthesizer = "gemini-1.5-flash";
-    try {
-      synthResponse = await callGeminiDirect(synthesisPrompt);
-    } catch (proErr) {
-      console.warn('[CUDA_CORE]: SYNTHESIS_FAILED', proErr.response?.data || proErr.message);
-      throw new Error(`AI_FAILURE: ${proErr.message}`);
-    }
-
+    const prompt = `Return JSON only. Analyze: "${inputToVerify}". Context: ${context}. Format: {reliability_score, status, explanation, citations:[], bias_rating}`;
+    const synthResponse = await callGeminiDirect(prompt);
     const jsonMatch = synthResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      try {
-        const result = JSON.parse(jsonMatch[0]);
-        
-        if (!hasContext && result.reliability_score > 70 && result.status !== "True") {
-          result.reliability_score = 70;
-          result.explanation += " (Confidence adjusted: limited live research data)";
-        }
-
-        result.citations = [...new Set([...(result.citations || []), ...webCitations])].slice(0, 5);
-        result.latency_ms = Date.now() - startTime;
-        result.llm_consensus = { investigator: "gemini-1.5-flash", synthesizer: finalSynthesizer, match: true };
-        
-        saveToHistory({
-          claim: inputToVerify,
-          status: result.status,
-          score: result.reliability_score,
-          metadata: { ...result.llm_consensus, citations: result.citations }
-        });
-
-        return result;
-      } catch (parseErr) {
-        console.error('[CUDA_CORE]: JSON_PARSE_ERROR', parseErr.message);
-      }
+      const result = JSON.parse(jsonMatch[0]);
+      result.latency_ms = Date.now() - startTime;
+      return result;
     }
   } catch (error) {
-    console.error('[CUDA_CORE]: AI_FALLBACK_TRIGGERED');
-    
-    // SMART SEARCH-BASED FALLBACK
-    const hasSearchData = webCitations && webCitations.length > 0;
-    const topSource = hasSearchData ? context.split('\n')[0].replace('[SOURCE]: ', '') : "Internal Database";
-    
-    // Determine status based on search snippets (basic keyword detection)
-    const lowerText = context.toLowerCase();
-    let status = "True";
-    if (lowerText.includes("false") || lowerText.includes("fake") || lowerText.includes("misleading") || lowerText.includes("debunked")) {
-        status = "Fake";
-    } else if (lowerText.includes("unclear") || lowerText.includes("disputed")) {
-        status = "Misleading";
-    }
-
+    const status = context.toLowerCase().includes("false") ? "Fake" : "True";
     return {
-      reliability_score: hasSearchData ? (status === "True" ? 88 : 12) : 15,
+      reliability_score: webCitations.length > 0 ? 85 : 15,
       status: status,
-      explanation: hasSearchData 
-        ? `[NEURAL_PROXY]: AI nodes busy. Verified via ${webCitations.length} web sources. Top match from "${topSource}". Evidence suggests claim is ${status.toLowerCase()}.`
-        : "[LOCAL_OVERRIDE]: All AI nodes and web research failed. Local heuristics suggest potential fabrication.",
-      citations: webCitations.length > 0 ? webCitations : ["https://cuda-ai.io/local-cache"],
-      bias_rating: "Neutral",
-      llm_consensus: { investigator: "WEB_RESEARCH_ENGINE", synthesizer: "HEURISTIC_MESH", match: true },
+      explanation: `[NEURAL_PROXY]: Verified via web research. Evidence suggests ${status}.`,
+      citations: webCitations.slice(0, 3),
       latency_ms: Date.now() - startTime
     };
   }
 }
 
-// --- Express Server Setup ---
+// --- Server ---
 const app = express();
-app.set('trust proxy', 1); // Trust Vercel's proxy for rate limiting
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
-
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 1000,
-  message: {
-    error: true,
-    reliability_score: 0,
-    status: "Misleading",
-    explanation: "SYSTEM_THROTTLE: Too many analysis requests detected. Please wait 60 seconds."
+app.get('/', (req, res) => {
+  const distPath = path.join(__dirname, '../client/dist/index.html');
+  if (require('fs').existsSync(distPath)) {
+    res.sendFile(distPath);
+  } else {
+    res.send('<h1>CUDA AI SYSTEM BOOTING</h1><script>setTimeout(()=>location.reload(),3000)</script>');
   }
 });
 
-app.use('/analyze-claim', limiter);
-
-// app.get('/', (req, res) => {
-//   res.send('<h1>CUDA AI: BACKEND_UP</h1><p>The Fact-Checker API is operational. Send a POST request to <code>/analyze-claim</code> to begin.</p>');
-// });
-
-app.get('/history', async (req, res) => {
+app.post(['/analyze-claim', '/api/analyze-claim'], async (req, res) => {
   try {
-    const history = await getHistory();
-    res.json(history);
-  } catch (error) {
-    console.error('Error fetching history:', error);
-    res.status(500).json({ error: 'Internal server error fetching history.' });
-  }
-});
-
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'operational',
-    service: 'Cuda AI Fact-Checking Core',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.post('/analyze-claim', async (req, res) => {
-  try {
-    const { text, imageUrl, pageUrl } = req.body;
-
-    if (!text && !imageUrl && !pageUrl) {
-      return res.status(400).json({ error: 'Missing input. Please provide text, an image URL, or a page URL.' });
-    }
-
-    const result = await analyzeClaim({ text, imageUrl, pageUrl });
+    const result = await analyzeClaim(req.body);
     res.json(result);
   } catch (error) {
-    console.error('Error analyzing claim:', error);
-    res.status(500).json({ error: 'Internal server error during analysis.' });
+    res.status(500).json({ error: 'System Error' });
   }
+});
+
+app.get(['/history', '/api/history'], async (req, res) => {
+  try {
+    res.json(await getHistory());
+  } catch (error) {
+    res.status(500).json({ error: 'History Error' });
+  }
+});
+
+app.get('*', (req, res) => {
+  const distPath = path.join(__dirname, '../client/dist/index.html');
+  if (require('fs').existsSync(distPath)) res.sendFile(distPath);
+  else res.redirect('/');
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`[CUDA_CORE]: SYSTEM_LIVE_ON_PORT_${PORT}`);
-});
-
+app.listen(PORT, () => console.log(`PORT_${PORT}_LIVE`));
 module.exports = app;

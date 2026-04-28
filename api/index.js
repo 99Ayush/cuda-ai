@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 
@@ -70,9 +71,15 @@ function preCheckClaim(text) {
   const clean = text.toLowerCase().trim();
   const staticFacts = [
     { 
-      keys: ["modi", "prime minister"], 
+      keys: ["prime minister", "india"], 
       status: "True", score: 99, 
-      expl: "Narendra Modi is the 14th and current PM of India. Verified via ECI records.",
+      expl: "Narendra Modi is the current PM of India. Verified via GOI.",
+      citations: ["https://www.pmindia.gov.in/"]
+    },
+    { 
+      keys: ["modi"], 
+      status: "True", score: 99, 
+      expl: "Narendra Modi is the current PM of India. Verified via GOI.",
       citations: ["https://www.pmindia.gov.in/"]
     },
     { 

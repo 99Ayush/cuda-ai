@@ -10,6 +10,11 @@ const { createClient } = require('@supabase/supabase-js');
 
 // --- Fact Checker Logic ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
+console.log('[CUDA_CORE]: SYSTEM_BOOT', { 
+  has_gemini_key: !!process.env.GEMINI_API_KEY,
+  has_tavily_key: !!process.env.TAVILY_API_KEY,
+  node_env: process.env.NODE_ENV 
+});
 
 const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) 
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
@@ -230,7 +235,8 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
         synthResponse = fallbackResult.response.text();
         finalSynthesizer = "gemini-1.5-flash";
       } catch (finalErr) {
-        throw new Error('All generative models exhausted: ' + finalErr.message);
+        console.error('[CUDA_CORE]: FINAL_AI_ERROR:', finalErr.message);
+        throw new Error(`AI_FAILURE: ${finalErr.message}`);
       }
     }
 

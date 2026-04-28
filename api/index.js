@@ -161,7 +161,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
   console.log('[CUDA_CORE]: INITIALIZING_CUDA_CONSENSUS', { text });
   
   const investigatorModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   let context = "";
   let webCitations = [];
@@ -219,7 +219,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
     `;
 
     let synthResponse;
-    let finalSynthesizer = "gemini-2.5-pro";
+    let finalSynthesizer = "gemini-1.5-flash";
     try {
       const proResult = await synthesizerModel.generateContent(synthesisPrompt);
       synthResponse = proResult.response.text();
@@ -291,6 +291,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
 
 // --- Express Server Setup ---
 const app = express();
+app.set('trust proxy', 1); // Trust Vercel's proxy for rate limiting
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..'))); // Serve static files from root folder

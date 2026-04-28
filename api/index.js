@@ -1,6 +1,18 @@
 // require('dotenv').config(); // Removed for Vercel production
 const express = require('express');
 const path = require('path');
+
+// --- SAFETY POLYFILL FOR NODE 18 ---
+if (typeof File === 'undefined') {
+  global.File = class File extends Blob {
+    constructor(parts, filename, options) {
+      super(parts, options);
+      this.name = filename;
+      this.lastModified = options?.lastModified || Date.now();
+    }
+  };
+}
+// ----------------------------------
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');

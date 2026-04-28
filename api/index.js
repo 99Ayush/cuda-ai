@@ -160,8 +160,8 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
 
   console.log('[CUDA_CORE]: INITIALIZING_CUDA_CONSENSUS', { text });
   
-  const investigatorModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+  const investigatorModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
   let context = "";
   let webCitations = [];
@@ -228,7 +228,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
       try {
         const fallbackResult = await investigatorModel.generateContent(synthesisPrompt);
         synthResponse = fallbackResult.response.text();
-        finalSynthesizer = "gemini-2.5-flash";
+        finalSynthesizer = "gemini-1.5-flash";
       } catch (finalErr) {
         throw new Error('All generative models exhausted: ' + finalErr.message);
       }
@@ -246,7 +246,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
 
         result.citations = [...new Set([...(result.citations || []), ...webCitations])].slice(0, 5);
         result.latency_ms = Date.now() - startTime;
-        result.llm_consensus = { investigator: "gemini-2.5-flash", synthesizer: finalSynthesizer, match: true };
+        result.llm_consensus = { investigator: "gemini-1.5-flash", synthesizer: finalSynthesizer, match: true };
         
         saveToHistory({
           claim: inputToVerify,

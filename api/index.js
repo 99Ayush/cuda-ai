@@ -11,24 +11,22 @@ const { createClient } = require('@supabase/supabase-js');
 // --- Fact Checker Logic ---
 const cleanKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-const genAI = new GoogleGenerativeAI(cleanKey);
-
 async function callGeminiDirect(prompt) {
-  const models = ["gemini-1.5-flash", "gemini-pro"];
-  let lastError;
-
-  for (const modelName of models) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      if (text) return text;
-    } catch (err) {
-      lastError = err;
-      console.warn(`[CUDA_CORE]: SDK_MODEL_${modelName}_FAILED:`, err.message);
-    }
+  const tKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${tKey}`;
+    const response = await axios.post(url, {
+      contents: [{ parts: [{ text: prompt }] }]
+    }, { 
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 12000 
+    });
+    
+    return response.data.candidates[0].content.parts[0].text;
+  } catch (err) {
+    console.error('[CUDA_CORE]: V1_API_FAILED:', err.response?.data || err.message);
+    throw err;
   }
-  throw lastError || new Error('SDK_ALL_MODELS_FAILED');
 }
 
 console.log('[CUDA_CORE]: SYSTEM_BOOT_DIRECT_FETCH', { 

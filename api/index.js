@@ -17,13 +17,17 @@ async function callGeminiDirect(prompt) {
 
   for (const model of models) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${cleanKey}`;
-      const response = await axios.post(url, {
-        contents: [{ parts: [{ text: prompt }] }]
-      }, { timeout: 10000 });
-      
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        return response.data.candidates[0].content.parts[0].text;
+      // Try v1 first, then v1beta
+      const versions = ['v1', 'v1beta'];
+      for (const ver of versions) {
+        const url = `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${cleanKey}`;
+        const response = await axios.post(url, {
+          contents: [{ parts: [{ text: prompt }] }]
+        }, { timeout: 8000 });
+        
+        if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          return response.data.candidates[0].content.parts[0].text;
+        }
       }
     } catch (err) {
       lastError = err;

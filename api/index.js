@@ -161,10 +161,13 @@ app.get('/', (req, res) => {
 });
 
 app.post(['/analyze-claim', '/api/analyze-claim'], async (req, res) => {
+  console.log('[CUDA_API]: REQUEST_RECEIVED:', req.body);
   try {
     const result = await analyzeClaim(req.body);
+    console.log('[CUDA_API]: RESPONSE_SENT:', result.status);
     res.json(result);
   } catch (error) {
+    console.error('[CUDA_API]: ERROR:', error);
     res.status(500).json({ error: 'System Error' });
   }
 });

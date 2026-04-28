@@ -11,21 +11,27 @@ const { createClient } = require('@supabase/supabase-js');
 // --- Fact Checker Logic ---
 const cleanKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-async function callGeminiDirect(prompt, model = "gemini-1.5-flash") {
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-    const response = await axios.post(url, {
-      contents: [{ parts: [{ text: prompt }] }]
-    });
-    
-    if (response.data && response.data.candidates && response.data.candidates[0]) {
-      return response.data.candidates[0].content.parts[0].text;
+async function callGeminiDirect(prompt) {
+  const models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-pro"];
+  let lastError;
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${cleanKey}`;
+      const response = await axios.post(url, {
+        contents: [{ parts: [{ text: prompt }] }]
+      }, { timeout: 10000 });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return response.data.candidates[0].content.parts[0].text;
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn(`[CUDA_CORE]: MODEL_${model}_FAILED. TRYING_NEXT...`);
     }
-    throw new Error('EMPTY_AI_RESPONSE');
-  } catch (err) {
-    console.error('[CUDA_CORE]: DIRECT_CALL_FAILED', err.response?.data || err.message);
-    throw err;
   }
+  console.error('[CUDA_CORE]: ALL_MODELS_FAILED', lastError?.response?.data || lastError?.message);
+  throw new Error('AI_ALL_MODELS_FAILED');
 }
 
 console.log('[CUDA_CORE]: SYSTEM_BOOT_DIRECT_FETCH', { 
@@ -141,8 +147,9 @@ function preCheckClaim(text) {
 }
 
 async function performSearch(queries) {
-  if (!process.env.TAVILY_API_KEY) {
-    console.warn('Tavily API key missing. Falling back to placeholders.');
+  const tKey = (process.env.TAVILY_API_KEY || '').trim();
+  if (!tKey) {
+    console.warn('[CUDA_CORE]: TAVILY_KEY_MISSING. SKIPPING_WEB_SEARCH.');
     return [];
   }
 
@@ -150,7 +157,7 @@ async function performSearch(queries) {
     const query = queries[0];
     console.log(`[CUDA_CORE]: INITIATING_TAVILY_RESEARCH: "${query}"`);
     const response = await axios.post('https://api.tavily.com/search', {
-      api_key: process.env.TAVILY_API_KEY,
+      api_key: tKey,
       query: query,
       search_depth: "basic",
       include_images: false,

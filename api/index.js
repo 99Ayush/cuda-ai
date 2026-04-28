@@ -309,9 +309,9 @@ const limiter = rateLimit({
 
 app.use('/analyze-claim', limiter);
 
-app.get('/', (req, res) => {
-  res.send('<h1>CUDA AI: BACKEND_UP</h1><p>The Fact-Checker API is operational. Send a POST request to <code>/analyze-claim</code> to begin.</p>');
-});
+// app.get('/', (req, res) => {
+//   res.send('<h1>CUDA AI: BACKEND_UP</h1><p>The Fact-Checker API is operational. Send a POST request to <code>/analyze-claim</code> to begin.</p>');
+// });
 
 app.get('/history', async (req, res) => {
   try {

@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "start": "node api/index.js",
-    "dev": "node api/index.js",
     "build": "cd client && npm install && npm run build"
   },
   "dependencies": {

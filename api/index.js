@@ -311,7 +311,7 @@ const app = express();
 app.set('trust proxy', 1); // Trust Vercel's proxy for rate limiting
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..'))); // Serve static files from root folder
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
 
 const limiter = rateLimit({

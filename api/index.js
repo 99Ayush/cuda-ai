@@ -9,14 +9,19 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 
 // --- Fact Checker Logic ---
-// Clean the API key to remove any accidental spaces/quotes from the dashboard
-const rawKey = process.env.GEMINI_API_KEY || '';
-const cleanKey = rawKey.trim().replace(/^["']|["']$/g, '');
-const genAI = new GoogleGenerativeAI(cleanKey);
+const cleanKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-console.log('[CUDA_CORE]: SYSTEM_BOOT', { 
-  gemini_key_length: cleanKey.length,
-  has_tavily_key: !!process.env.TAVILY_API_KEY
+async function callGeminiDirect(prompt, model = "gemini-1.5-flash") {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+  const response = await axios.post(url, {
+    contents: [{ parts: [{ text: prompt }] }]
+  });
+  return response.data.candidates[0].content.parts[0].text;
+}
+
+console.log('[CUDA_CORE]: SYSTEM_BOOT_DIRECT_FETCH', { 
+  key_length: cleanKey.length,
+  has_tavily: !!process.env.TAVILY_API_KEY
 });
 
 const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) 
@@ -179,10 +184,10 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
     let queries = [];
     try {
       const researchPrompt = `GENERATING_VERIFICATION_QUERIES: "${inputToVerify}". Return exactly 3 separate search queries line-by-line. No preamble.`;
-      const queryResult = await investigatorModel.generateContent(researchPrompt);
-      queries = queryResult.response.text().split('\n').filter(q => q.trim()).map(q => q.replace(/^\d+\.\s*/, ''));
+      const textResponse = await callGeminiDirect(researchPrompt);
+      queries = textResponse.split('\n').filter(q => q.trim()).map(q => q.replace(/^\d+\.\s*/, ''));
     } catch (aiErr) {
-      console.warn('[CUDA_CORE]: RESEARCH_AI_FAILED. USING_MOCK_QUERIES.');
+      console.warn('[CUDA_CORE]: RESEARCH_AI_FAILED', aiErr.response?.data || aiErr.message);
       queries = [inputToVerify, `verification for ${inputToVerify}`, `latest news on ${inputToVerify}`];
     }
     
@@ -229,18 +234,10 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
     let synthResponse;
     let finalSynthesizer = "gemini-1.5-flash";
     try {
-      const proResult = await synthesizerModel.generateContent(synthesisPrompt);
-      synthResponse = proResult.response.text();
+      synthResponse = await callGeminiDirect(synthesisPrompt);
     } catch (proErr) {
-      console.warn('[CUDA_CORE]: FALLING_BACK_TO_INVESTIGATOR_FOR_SYNTHESIS', proErr.message);
-      try {
-        const fallbackResult = await investigatorModel.generateContent(synthesisPrompt);
-        synthResponse = fallbackResult.response.text();
-        finalSynthesizer = "gemini-1.5-flash";
-      } catch (finalErr) {
-        console.error('[CUDA_CORE]: FINAL_AI_ERROR:', finalErr.message);
-        throw new Error(`AI_FAILURE: ${finalErr.message}`);
-      }
+      console.warn('[CUDA_CORE]: SYNTHESIS_FAILED', proErr.response?.data || proErr.message);
+      throw new Error(`AI_FAILURE: ${proErr.message}`);
     }
 
     const jsonMatch = synthResponse.match(/\{[\s\S]*\}/);

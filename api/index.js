@@ -11,19 +11,28 @@ const { createClient } = require('@supabase/supabase-js');
 // --- Fact Checker Logic ---
 const cleanKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
+console.log('[CUDA_CORE]: SYSTEM_BOOT_DEBUG', { 
+  key_len: cleanKey.length,
+  key_start: cleanKey.substring(0, 6),
+  key_end: cleanKey.substring(cleanKey.length - 4)
+});
+
 async function callGeminiDirect(prompt) {
-  const models = ["gemini-1.5-flash", "gemini-pro", "gemini-1.0-pro", "gemini-1.5-flash-8b"];
+  const models = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro", "gemini-1.0-pro"];
   let lastError;
 
   for (const model of models) {
     try {
       const versions = ['v1', 'v1beta'];
       for (const ver of versions) {
+        // Try with and without the "models/" prefix if needed, but standard is with it
         const url = `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${cleanKey}`;
-        console.log(`[CUDA_CORE]: TRYING_AI_NODE: ${ver}/${model}`);
         const response = await axios.post(url, {
           contents: [{ parts: [{ text: prompt }] }]
-        }, { timeout: 8000 });
+        }, { 
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 8000 
+        });
         
         if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           return response.data.candidates[0].content.parts[0].text;

@@ -9,13 +9,14 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 
 // --- Fact Checker Logic ---
-// Force v1 API which is more stable for standard Flash models
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
-// Note: The latest SDK version uses v1 by default, but we'll ensure we aren't hitting beta routes.
+// Clean the API key to remove any accidental spaces/quotes from the dashboard
+const rawKey = process.env.GEMINI_API_KEY || '';
+const cleanKey = rawKey.trim().replace(/^["']|["']$/g, '');
+const genAI = new GoogleGenerativeAI(cleanKey);
+
 console.log('[CUDA_CORE]: SYSTEM_BOOT', { 
-  has_gemini_key: !!process.env.GEMINI_API_KEY,
-  has_tavily_key: !!process.env.TAVILY_API_KEY,
-  node_env: process.env.NODE_ENV 
+  gemini_key_length: cleanKey.length,
+  has_tavily_key: !!process.env.TAVILY_API_KEY
 });
 
 const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) 
@@ -167,8 +168,8 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
 
   console.log('[CUDA_CORE]: INITIALIZING_CUDA_CONSENSUS', { text });
   
-  const investigatorModel = genAI.getGenerativeModel({ model: "gemini-pro" }, { apiVersion: 'v1' });
-  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-pro" }, { apiVersion: 'v1' });
+  const investigatorModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   let context = "";
   let webCitations = [];
@@ -226,7 +227,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
     `;
 
     let synthResponse;
-    let finalSynthesizer = "gemini-pro";
+    let finalSynthesizer = "gemini-1.5-flash";
     try {
       const proResult = await synthesizerModel.generateContent(synthesisPrompt);
       synthResponse = proResult.response.text();
@@ -235,7 +236,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
       try {
         const fallbackResult = await investigatorModel.generateContent(synthesisPrompt);
         synthResponse = fallbackResult.response.text();
-        finalSynthesizer = "gemini-pro";
+        finalSynthesizer = "gemini-1.5-flash";
       } catch (finalErr) {
         console.error('[CUDA_CORE]: FINAL_AI_ERROR:', finalErr.message);
         throw new Error(`AI_FAILURE: ${finalErr.message}`);

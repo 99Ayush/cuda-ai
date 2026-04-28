@@ -165,8 +165,8 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
 
   console.log('[CUDA_CORE]: INITIALIZING_CUDA_CONSENSUS', { text });
   
-  const investigatorModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const investigatorModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  const synthesizerModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
   let context = "";
   let webCitations = [];
@@ -224,7 +224,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
     `;
 
     let synthResponse;
-    let finalSynthesizer = "gemini-1.5-flash";
+    let finalSynthesizer = "gemini-1.5-flash-latest";
     try {
       const proResult = await synthesizerModel.generateContent(synthesisPrompt);
       synthResponse = proResult.response.text();
@@ -233,7 +233,7 @@ async function analyzeClaim({ text, imageUrl, pageUrl }) {
       try {
         const fallbackResult = await investigatorModel.generateContent(synthesisPrompt);
         synthResponse = fallbackResult.response.text();
-        finalSynthesizer = "gemini-1.5-flash";
+        finalSynthesizer = "gemini-1.5-flash-latest";
       } catch (finalErr) {
         console.error('[CUDA_CORE]: FINAL_AI_ERROR:', finalErr.message);
         throw new Error(`AI_FAILURE: ${finalErr.message}`);

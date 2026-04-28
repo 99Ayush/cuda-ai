@@ -12,11 +12,20 @@ const { createClient } = require('@supabase/supabase-js');
 const cleanKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
 async function callGeminiDirect(prompt, model = "gemini-1.5-flash") {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-  const response = await axios.post(url, {
-    contents: [{ parts: [{ text: prompt }] }]
-  });
-  return response.data.candidates[0].content.parts[0].text;
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+    const response = await axios.post(url, {
+      contents: [{ parts: [{ text: prompt }] }]
+    });
+    
+    if (response.data && response.data.candidates && response.data.candidates[0]) {
+      return response.data.candidates[0].content.parts[0].text;
+    }
+    throw new Error('EMPTY_AI_RESPONSE');
+  } catch (err) {
+    console.error('[CUDA_CORE]: DIRECT_CALL_FAILED', err.response?.data || err.message);
+    throw err;
+  }
 }
 
 console.log('[CUDA_CORE]: SYSTEM_BOOT_DIRECT_FETCH', { 

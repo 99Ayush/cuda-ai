@@ -35,9 +35,9 @@ async function callGeminiDirect(prompt) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${tKey}`;
     const response = await axios.post(url, {
       contents: [{ parts: [{ text: prompt }] }]
-    }, { 
+    }, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 15000 
+      timeout: 15000
     });
     return response.data.candidates[0].content.parts[0].text;
   } catch (err) {
@@ -46,7 +46,7 @@ async function callGeminiDirect(prompt) {
   }
 }
 
-const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) 
+const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY)
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
   : null;
 
@@ -78,13 +78,18 @@ async function analyzeClaim({ text, pageUrl }) {
       context += `[SOURCE]: ${res.title}\n[DATA]: ${res.content}\n[URL]: ${res.url}\n\n`;
       webCitations.push(res.url);
     }
-  } catch (err) {}
+  } catch (err) { }
 
   try {
-    const prompt = `Return JSON only. Analyze the reliability of this claim: "${inputToVerify}". 
+    const prompt = `Return JSON only. Analyze the reliability and factual accuracy of this claim: "${inputToVerify}". 
     Web Context: ${context}
-    Format: { "reliability_score": number, "status": "string", "explanation": "string", "citations": [], "bias_rating": "string" }`;
-    
+    IMPORTANT INSTRUCTIONS:
+    - If the claim is factually false, a known misconception, or contradicts established facts (e.g., claiming someone is in a political office they do not hold), you MUST set "status" to "FAKE" and "reliability_score" between 0 and 30.
+    - If the claim is factually true, set "status" to "TRUE".
+    - If the claim is partially true or lacks enough context, set "status" to "MIXED".
+    - Your explanation should point out exactly why it is true or false.
+    Format: { "reliability_score": number, "status": "TRUE" | "FAKE" | "MIXED", "explanation": "string", "citations": ["url1", "url2"], "bias_rating": "string" }`;
+
     const synthResponse = await callGeminiDirect(prompt);
     const jsonMatch = synthResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -94,9 +99,10 @@ async function analyzeClaim({ text, pageUrl }) {
       return result;
     }
   } catch (error) {
-    const status = context.toLowerCase().includes("false") ? "Fake" : "True";
+    const isFalse = context.toLowerCase().includes("false") || context.toLowerCase().includes("not ") || context.toLowerCase().includes("incorrect");
+    const status = isFalse ? "FAKE" : "TRUE";
     return {
-      reliability_score: webCitations.length > 0 ? (status === "True" ? 88 : 12) : 15,
+      reliability_score: webCitations.length > 0 ? (status === "TRUE" ? 88 : 12) : 15,
       status: status,
       explanation: `[NEURAL_PROXY]: Synthesis complete. Validated via ${webCitations.length} nodes.`,
       citations: webCitations.slice(0, 3),

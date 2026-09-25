@@ -1,4 +1,8 @@
+// CUDA AI Backend - Express Server with AI-Powered Fact Checking
+// Provides REST API endpoints for claim analysis, health checks, and history
+
 console.log('[CUDA_BOOT]: INITIALIZING_CORE_SYSTEM...');
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -6,12 +10,13 @@ const rateLimit = require('express-rate-limit');
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
-// --- PATH LOGGING ---
-const DIST_PATH = path.join(__dirname, '../client/dist');
+// Resolve frontend dist path for production static file serving
+// In production, backend serves the built React app from frontend/client/dist
+const DIST_PATH = path.join(__dirname, '../../frontend/client/dist');
 console.log('[CUDA_BOOT]: DIST_PATH:', DIST_PATH);
 console.log('[CUDA_BOOT]: DIST_EXISTS:', require('fs').existsSync(DIST_PATH));
 
-// --- SAFETY POLYFILL ---
+// Polyfill File/Blob for Node.js environment (needed by some AI SDKs)
 if (typeof File === 'undefined') {
   console.log('[CUDA_BOOT]: APPLYING_FILE_POLYFILL');
   const { Blob } = require('node:buffer');
@@ -24,19 +29,24 @@ if (typeof File === 'undefined') {
   };
 }
 
-// --- KEYS CHECK ---
+// Verify required API keys are present
 console.log('[CUDA_BOOT]: GEMINI_KEY:', !!process.env.GEMINI_API_KEY);
 console.log('[CUDA_BOOT]: TAVILY_KEY:', !!process.env.TAVILY_API_KEY);
 
-// --- In-Memory History Store ---
+// In-memory history store (resets on restart)
+// TODO: Replace with Supabase persistence for production
 const scanHistory = [];
 
-// --- Supabase (optional) ---
+// Optional Supabase client for database persistence
 const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY)
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
   : null;
 
-// --- Gemini Call ---
+/**
+ * Calls Google Gemini API directly with structured prompt
+ * @param {string} prompt - Formatted prompt for fact-checking
+ * @returns {Promise<string>} Raw JSON response from Gemini
+ */
 async function callGeminiDirect(prompt) {
   const tKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
   if (!tKey) throw new Error('NO_GEMINI_KEY');
@@ -46,7 +56,7 @@ async function callGeminiDirect(prompt) {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.1,
-      responseMimeType: "application/json"
+      responseMimeType: 'application/json'
     }
   }, {
     headers: { 'Content-Type': 'application/json' },
@@ -58,7 +68,11 @@ async function callGeminiDirect(prompt) {
   return raw;
 }
 
-// --- Tavily Web Search ---
+/**
+ * Performs web search via Tavily API for real-world context
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} Search results with title, content, url
+ */
 async function performSearch(query) {
   const tKey = (process.env.TAVILY_API_KEY || '').trim();
   if (!tKey) return [];
@@ -66,7 +80,7 @@ async function performSearch(query) {
     const response = await axios.post('https://api.tavily.com/search', {
       api_key: tKey,
       query: query,
-      search_depth: "advanced",
+      search_depth: 'advanced',
       max_results: 5
     }, { timeout: 10000 });
     return response.data.results || [];
@@ -76,7 +90,11 @@ async function performSearch(query) {
   }
 }
 
-// --- Core Analysis Engine ---
+/**
+ * Core analysis engine: searches web, calls Gemini, returns structured verdict
+ * @param {Object} params - { text?: string, pageUrl?: string }
+ * @returns {Promise<Object>} Structured analysis result
+ */
 async function analyzeClaim({ text, pageUrl }) {
   const startTime = Date.now();
   const inputToVerify = (text || pageUrl || '').trim();
@@ -85,14 +103,14 @@ async function analyzeClaim({ text, pageUrl }) {
   let context = '';
   let webCitations = [];
 
-  // Step 1: Web search for real-world context
+  // Step 1: Gather real-world evidence via web search
   const searchResults = await performSearch(inputToVerify);
   for (const res of searchResults) {
     context += `[SOURCE]: ${res.title}\n[DATA]: ${res.content}\n[URL]: ${res.url}\n\n`;
     webCitations.push(res.url);
   }
 
-  // Step 2: Ask Gemini to analyze with strict JSON output
+  // Step 2: Ask Gemini to analyze with strict JSON output schema
   const prompt = `You are a professional fact-checker. Analyze this claim with precision: "${inputToVerify}"
 
 Web research context:
@@ -117,7 +135,7 @@ Return ONLY a JSON object (no markdown, no explanation outside JSON):
   try {
     const synthResponse = await callGeminiDirect(prompt);
 
-    // Try to parse the JSON — handle markdown code blocks too
+    // Parse JSON response, handling markdown code blocks
     let jsonText = synthResponse.trim();
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/```(?:json)?/g, '').trim();
@@ -127,14 +145,14 @@ Return ONLY a JSON object (no markdown, no explanation outside JSON):
 
     const result = JSON.parse(jsonMatch[0]);
 
-    // Merge web citations into Gemini's citations if missing
+    // Merge web citations if Gemini didn't provide any
     if (!result.citations || result.citations.length === 0) {
       result.citations = webCitations.slice(0, 3);
     }
     result.latency_ms = Date.now() - startTime;
     result.llm_consensus = { investigator: 'GEMINI_2.5_FLASH', synthesizer: 'CUDA_SYNTH_V2', match: true };
 
-    // Save to in-memory history
+    // Store in history (max 100 entries)
     scanHistory.unshift({
       id: Date.now(),
       claim: inputToVerify,
@@ -150,11 +168,10 @@ Return ONLY a JSON object (no markdown, no explanation outside JSON):
     return result;
 
   } catch (geminiError) {
-    // Emergency fallback — use Tavily context to make a best-guess decision
+    // Fallback: keyword-based verdict from web context when Gemini fails
     console.error('[GEMINI_FAIL]:', geminiError.message);
     const ctxLower = context.toLowerCase();
 
-    // Keyword-based verdict from web context
     const fakeSignals = ['not the', 'is not', 'incorrect', 'false', 'never was', 'no evidence', 'disputed', 'debunked'];
     const trueSignals = ['confirmed', 'verified', 'is true', 'according to', 'officially', 'declared'];
     const fakeScore = fakeSignals.filter(w => ctxLower.includes(w)).length;
@@ -197,28 +214,33 @@ Return ONLY a JSON object (no markdown, no explanation outside JSON):
   }
 }
 
-// --- Express App Setup ---
+// Express app setup
 const app = express();
-app.set('trust proxy', 1);
-app.use(cors());
-app.use(express.json());
-app.use(express.static(DIST_PATH));
+app.set('trust proxy', 1); // Trust reverse proxy headers (for rate limiting behind proxy)
+app.use(cors()); // Allow all origins (configure for production)
+app.use(express.json()); // Parse JSON bodies
+app.use(express.static(DIST_PATH)); // Serve frontend static assets
 
-// Rate limiter
+// Rate limiter: 30 requests per minute per IP on analysis endpoint
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 app.use('/analyze-claim', limiter);
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'UP', port: process.env.PORT, gemini: !!process.env.GEMINI_API_KEY, tavily: !!process.env.TAVILY_API_KEY }));
+// Health check endpoint - returns service status and key availability
+app.get('/health', (req, res) => res.json({
+  status: 'UP',
+  port: process.env.PORT,
+  gemini: !!process.env.GEMINI_API_KEY,
+  tavily: !!process.env.TAVILY_API_KEY
+}));
 
-// Serve frontend root
+// Serve frontend index.html for root route
 app.get('/', (req, res) => {
   const indexPath = path.join(DIST_PATH, 'index.html');
   if (require('fs').existsSync(indexPath)) res.sendFile(indexPath);
   else res.send('<h1>CUDA AI: SYSTEM_BOOTING</h1><script>setTimeout(()=>location.reload(),5000)</script>');
 });
 
-// Analyze claim API
+// Main analysis endpoint - accepts { text } or { pageUrl }
 app.post('/analyze-claim', async (req, res) => {
   try {
     const result = await analyzeClaim(req.body);
@@ -229,13 +251,14 @@ app.post('/analyze-claim', async (req, res) => {
   }
 });
 
-// History API — returns last 50 scans
+// History endpoint - returns last 50 scans
 app.get('/history', (req, res) => {
   res.json(scanHistory.slice(0, 50));
 });
 
-// SPA fallback — must be last
-app.get('*', (req, res) => {
+// SPA fallback - serve index.html for all non-API routes (client-side routing)
+// Uses regex pattern compatible with Express 5
+app.get(/(.*)/, (req, res) => {
   const indexPath = path.join(DIST_PATH, 'index.html');
   if (require('fs').existsSync(indexPath)) res.sendFile(indexPath);
   else res.redirect('/');

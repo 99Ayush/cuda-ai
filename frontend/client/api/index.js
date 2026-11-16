@@ -1,2 +1,1 @@
-import appModule from "../server/app.cjs";
-export default appModule.createApp();
+module.exports = require('../server/app.js').createApp();

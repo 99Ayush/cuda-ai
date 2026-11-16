@@ -2,7 +2,7 @@
   "name": "cuda-ai-frontend",
   "version": "3.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "engines": {
     "node": ">=22.12.0"
   },

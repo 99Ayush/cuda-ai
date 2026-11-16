@@ -1,6 +1,6 @@
 const { isIP } = require("node:net");
 const { randomUUID } = require("node:crypto");
-const { ServiceError } = require("./errors.cjs");
+const { ServiceError } = require("./errors.js");
 
 const VERDICTS = ["TRUE", "FALSE", "MIXED", "UNVERIFIED"];
 const EXTRACTION_SCHEMA = {

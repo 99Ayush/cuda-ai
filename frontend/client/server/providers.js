@@ -1,4 +1,4 @@
-const { ServiceError } = require("./errors.cjs");
+const { ServiceError } = require("./errors.js");
 
 function createProviders(config, transport = fetch) {
   async function post(

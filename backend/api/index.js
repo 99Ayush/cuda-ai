@@ -1,4 +1,4 @@
-const { createApp } = require("../../frontend/client/server/app.cjs");
+const { createApp } = require("../../frontend/client/server/app.js");
 const app = createApp();
 if (require.main === module) {
   const port = Number(process.env.PORT || 8080);

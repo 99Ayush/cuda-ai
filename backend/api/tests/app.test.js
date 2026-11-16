@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { config, server } = require("./helpers.cjs");
+const { config, server } = require("./helpers.js");
 const claim = "Lightning never strikes the same place twice.";
 const post = (base, body, headers = {}) =>
   fetch(base + "/api/analyze-claim", {

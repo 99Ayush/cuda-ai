@@ -1,5 +1,5 @@
 const { once } = require("node:events");
-const { createApp } = require("../../../frontend/client/server/app.cjs");
+const { createApp } = require("../../../frontend/client/server/app.js");
 const config = {
   geminiKey: "test",
   tavilyKey: "test",

@@ -1,9 +1,10 @@
-import js from "@eslint/js";
-import globals from "globals";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
-import { defineConfig, globalIgnores } from "eslint/config";
-export default defineConfig([
+const unwrap = (value) => value.default || value;
+const js = unwrap(require("@eslint/js"));
+const globals = unwrap(require("globals"));
+const reactHooks = unwrap(require("eslint-plugin-react-hooks"));
+const reactRefresh = unwrap(require("eslint-plugin-react-refresh"));
+const { defineConfig, globalIgnores } = require("eslint/config");
+module.exports = defineConfig([
   globalIgnores(["dist", "node_modules"]),
   {
     files: ["src/**/*.{js,jsx}"],
@@ -13,19 +14,20 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
+      sourceType: "module",
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
   {
     files: [
-      "server/**/*.cjs",
+      "server/**/*.js",
       "api/**/*.js",
       "vite.config.js",
       "eslint.config.js",
     ],
     extends: [js.configs.recommended],
-    languageOptions: { globals: globals.node },
+    languageOptions: { globals: globals.node, sourceType: "commonjs" },
   },
   {
     files: ["public/background.js"],

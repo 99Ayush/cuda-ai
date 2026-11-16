@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { config, providers, source, modelOutput } = require("./helpers.cjs");
+const { config, providers, source, modelOutput } = require("./helpers.js");
 const {
   createEngine,
   publicUrl,
@@ -8,11 +8,11 @@ const {
   validateAnalysis,
   normalizeSources,
   aggregate,
-} = require("../../../frontend/client/server/engine.cjs");
+} = require("../../../frontend/client/server/engine.js");
 const {
   createProviders,
-} = require("../../../frontend/client/server/providers.cjs");
-const { ServiceError } = require("../../../frontend/client/server/errors.cjs");
+} = require("../../../frontend/client/server/providers.js");
+const { ServiceError } = require("../../../frontend/client/server/errors.js");
 const claim = "Lightning never strikes the same place twice.";
 
 test("rejects empty, malformed, ambiguous and excessive input", () => {

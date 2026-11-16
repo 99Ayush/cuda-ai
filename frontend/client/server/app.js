@@ -3,10 +3,10 @@ const { rateLimit } = require("express-rate-limit");
 const path = require("node:path");
 const fs = require("node:fs");
 const { randomUUID } = require("node:crypto");
-const { loadConfig } = require("./config.cjs");
-const { createProviders } = require("./providers.cjs");
-const { createEngine } = require("./engine.cjs");
-const { ServiceError } = require("./errors.cjs");
+const { loadConfig } = require("./config.js");
+const { createProviders } = require("./providers.js");
+const { createEngine } = require("./engine.js");
+const { ServiceError } = require("./errors.js");
 
 function createApp(options = {}) {
   const config = options.config || loadConfig();

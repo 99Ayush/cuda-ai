@@ -1,8 +1,15 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createEngine } = require("../../../frontend/client/server/engine.cjs");
-const { config, providers } = require("./helpers.cjs");
-const storageModule = import("../../../frontend/client/src/storage.js");
+const { createEngine } = require("../../../frontend/client/server/engine.js");
+const { config, providers } = require("./helpers.js");
+// Browser modules are bundled by Vite independently of Node's package type.
+const storageSource = require("node:fs").readFileSync(
+  require("node:path").resolve(__dirname, "../../../frontend/client/src/storage.js"),
+  "utf8",
+);
+const storageModule = import(
+  `data:text/javascript;base64,${Buffer.from(storageSource).toString("base64")}`
+);
 function memoryStore() {
   const map = new Map();
   return {

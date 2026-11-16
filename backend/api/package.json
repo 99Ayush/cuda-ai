@@ -1,21 +1,14 @@
 {
   "name": "cuda-ai-backend",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "Claim verification API - Tavily evidence retrieval + Gemini verdict synthesis",
   "main": "index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.45.0",
-    "axios": "^1.7.0",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.4.0"
-  }
+  "type": "commonjs"
 }

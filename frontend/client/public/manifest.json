@@ -1,22 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "CUDA AI - Active Guard",
-  "version": "2.0",
-  "description": "Real-time AI fact-checker powered by CUDA AI.",
-  "permissions": [
-    "sidePanel",
-    "activeTab",
-    "storage",
-    "contextMenus"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "name": "CUDA AI - Fact Checker",
+  "version": "3.0",
+  "description": "Bring selected claims to CUDA AI for evidence-based fact checking.",
+  "permissions": ["sidePanel", "activeTab", "contextMenus"],
   "background": {
     "service_worker": "background.js"
   },
   "side_panel": {
-    "default_path": "index.html"
+    "default_path": "extension.html"
   },
   "action": {
     "default_title": "Open Cuda AI"

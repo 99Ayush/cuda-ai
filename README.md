@@ -1,107 +1,96 @@
-# CUDA AI — Crisis Coordination & Claim Verification
+# CUDA AI
 
-**A fact-checking service that grounds every verdict in live web evidence, and explains itself.**
+A fact-checking website for claims and public articles. It retrieves web evidence with Tavily and uses Gemini to compare that evidence with the claim. Findings are **Supported**, **Refuted**, **Mixed findings**, or **Unverified**, with exact source excerpts and links.
 
-> 🔗 **Live:** [cuda-ai.vercel.app](https://cuda-ai.vercel.app)
+The website does not generate a true/false verdict from keywords or the absence of evidence. Every cited source ID and quotation is checked against retrieved content. AI judgments can still be wrong; users should read the original sources.
 
-During an emergency — a fire alarm, a stampede scare, a public event — the fastest-spreading information is usually the least verified. A single viral rumour can move a crowd before anyone official has spoken. CUDA AI is a claim-verification backend built for that window: paste a claim, and it searches the live web, asks a model to judge it against the evidence it found, and returns a verdict with a reliability score, an explanation and citations.
+## Run locally
 
----
+Use Node.js 22.12 or newer. From the repository root:
 
-## How a claim is verified
-
-```
-claim  →  Tavily web search (5 results, advanced depth)
-       →  evidence assembled into a grounded context block
-       →  Gemini 2.5 Flash, constrained to a JSON schema
-       →  parse → validate → verdict + score + explanation + citations
-       →  append to history
+```sh
+npm ci
+npm run dev
 ```
 
-Three things make this more than a prompt wrapper:
+The UI opens at http://localhost:5173. The API listens on port 8080, and Vite proxies /api requests to it. To serve the built website with Node:
 
-**1. Evidence before opinion.** The model never sees the bare claim on its own — it sees the claim plus the search results retrieved for it. If search returns nothing, the response is labelled as training-knowledge-only rather than passed off as verified.
+```sh
+npm run build
+npm start
+```
 
-**2. Constrained output, then parsed.** The prompt pins an exact JSON contract — `status`, `reliability_score`, `explanation`, `citations`, `bias_rating` — and the response is stripped of markdown fences and regex-extracted before `JSON.parse`. Malformed model output is a caught error, not a silent failure.
+The built website is then available at http://localhost:8080.
 
-**3. Graceful degradation.** If the Gemini call fails, the service does not return a blank screen. It falls back to a keyword-signal scorer over the retrieved context and returns a low-confidence verdict marked as such.
+Configure GEMINI*API_KEY and TAVILY_API_KEY in your environment. The server also loads local .env files at the repository root, backend/api, or frontend/client; existing environment variables take precedence. The root .env.example documents the configuration. Do not put provider secrets in VITE* variables or commit them.
 
-Scoring bands are explicit: `TRUE → 70–100`, `MIXED → 31–69`, `FAKE → 0–30`.
+| Setting         | Purpose                                                                               |
+| --------------- | ------------------------------------------------------------------------------------- |
+| GEMINI_API_KEY  | Required server-side Gemini credential                                                |
+| TAVILY_API_KEY  | Required server-side Tavily credential                                                |
+| GEMINI_MODEL    | Optional model override; defaults to gemini-3.5-flash-lite                            |
+| PORT            | Local backend port; defaults to 8080. The default dev proxy expects 8080.             |
+| ALLOWED_ORIGINS | Optional comma-separated origins for a separately hosted UI                           |
+| VITE_API_URL    | Optional API origin for a separately hosted UI; omit for same-origin Vercel/local use |
 
----
+Gemini 2.5 Flash is deprecated and is limited to existing users until December 1, 2026. The default uses its documented successor. See [Google's model guidance](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash).
+
+## Deploy on Vercel
+
+Connect the GitHub repository to your existing Vercel project. Both the **repository root** and **frontend/client** are supported project root directories. Their vercel.json files build the Vite UI and route API requests to the same serverless Express handler.
+
+- Add GEMINI_API_KEY and TAVILY_API_KEY as server-side environment variables. Enable them for the environments you intend to test: Preview and Production.
+- Use Vite as the framework preset and a supported Node version of 22 or later.
+- For repository-root deployments, the output directory is frontend/client/dist. For frontend/client deployments, it is dist.
+- Remove old project-level command/output overrides if they contradict the committed configuration.
+- Redeploy after changing environment variables. Existing deployments do not receive new values automatically.
+- Verify /api/health and submit a real claim after deployment. A health response of ready confirms configuration presence, not provider credentials or available quota.
+
+The server lives inside frontend/client/server so a Vercel project rooted at frontend/client can trace all its runtime sources. backend/api/index.js remains the local Node entry point. The root and frontend API adapters share the same implementation.
+
+## Behavior and privacy
+
+- **Claim checks:** accept one specific claim, 8–2,000 characters.
+- **Article checks:** Tavily extracts public article text. Gemini selects up to three key factual claims, which are searched and checked separately. The input publisher is excluded from evidence searches to avoid circular confirmation.
+- **Evidence:** duplicate and unsafe URLs are removed. Invalid model fields are rejected; invented source IDs and non-matching quotes cannot establish a verdict.
+- **Uncertainty:** no evidence yields Unverified. Provider outages, quota failures and invalid output produce clear retryable errors; they do not become fabricated findings.
+- **History:** up to 50 validated reports are stored in this browser's localStorage, with search, individual deletion, clearing and JSON export. There is no account or cross-device synchronization. Anyone using this browser profile can see its history.
+- **Provider processing:** claim text and extracted article text are sent to Tavily and Gemini as part of analysis. The application does not keep a global server history or log submitted text/API keys.
+- **Security:** same-origin API access by default, bounded JSON input, public-domain URL validation, safe citation links and safe JSON errors. The app never directly fetches arbitrary user URLs; extraction is delegated to Tavily.
+- **Usage limits:** 10 checks per minute per IP per function instance. Vercel's proxy topology is trusted only when running on Vercel; local clients cannot choose their apparent IP. For substantial public traffic, configure shared rate limits, Vercel Firewall and provider spending limits.
+- **Scope:** text and article fact checking. Images, videos, deepfake detection and emergency coordination are outside this release.
+
+The UI shows evidence coverage rather than uncalibrated confidence percentages. It does not advertise simulated telemetry, encryption layers or model consensus.
 
 ## API
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/health` | Service and key-configuration check |
-| `POST` | `/analyze-claim` | Body: `{ "text": "..." }` or `{ "pageUrl": "..." }` → verdict object |
-| `GET` | `/history` | Last 100 analyses (in-memory, newest first) |
+| Method | Endpoint           | Behavior                                                                              |
+| ------ | ------------------ | ------------------------------------------------------------------------------------- |
+| GET    | /api/health        | Configuration readiness                                                               |
+| POST   | /api/analyze-claim | JSON body with either text or pageUrl                                                 |
+| GET    | /api/history       | Compatibility endpoint returning an empty array; private history stays in the browser |
 
-**Example response**
+Legacy /health, /analyze-claim and /history paths remain available. API responses use Cache-Control: no-store.
 
 ```json
-{
-  "status": "FAKE",
-  "reliability_score": 18,
-  "explanation": "No credible source reports this; the original claim appears to be a mistranslation of an unrelated incident.",
-  "citations": ["https://..."],
-  "bias_rating": "Emotional",
-  "latency_ms": 2140
-}
+{ "text": "Lightning never strikes the same place twice." }
 ```
 
-Rate limiting is applied per IP, and the service serves the built React client from `frontend/client/dist` in production.
+A report contains id, input, input_type, verdict, summary, claims, source_count, checked_at, latency_ms and model. Each claim contains its verdict, explanation, evidence_strength, exact quoted evidence and retrieved source metadata. No numeric confidence is claimed.
 
----
+## Validate changes
 
-## Architecture
-
-```
-cuda-ai/
-├── backend/api/index.js          Express service (routing, search, verification, fallback)
-├── frontend/client/              React + Vite client
-│   └── src/main.jsx              Crisis dashboard UI
-├── .env.example
-└── README.md
+```sh
+npm run check
+npm audit
 ```
 
-**Persistence:** verification history is held in memory, capped at 100 entries. Supabase (Postgres) is wired in and used when `SUPABASE_URL` and `SUPABASE_KEY` are present — moving history from process memory to durable storage is the obvious next step.
+The Node tests cover HTTP routes, validation, provider outages, evidence grounding, article extraction, private history, rate limiting and corrupted browser storage. They use injected provider fixtures and never require real API keys. GitHub Actions runs tests, lint, build and the dependency audit on pull requests and main.
 
----
+## Optional browser extension
 
-## Running locally
-
-**Prerequisites:** Node.js 18+, a Gemini API key, a Tavily API key
-
-```bash
-cd backend/api
-npm install
-cp ../../.env.example .env      # GEMINI_API_KEY, TAVILY_API_KEY
-npm start                        # http://localhost:8080
-```
-
-```bash
-cd frontend/client
-npm install
-npm run dev                      # http://localhost:5173
-```
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `GEMINI_API_KEY` | Yes | Claim analysis |
-| `TAVILY_API_KEY` | Yes | Evidence retrieval |
-| `SUPABASE_URL` / `SUPABASE_KEY` | No | Durable history storage |
-| `PORT` | No | Defaults to 8080 |
-
----
-
-## Stack
-
-**Backend** — Node.js, Express, Axios, express-rate-limit, Supabase client
-**AI** — Google Gemini 2.5 Flash (structured JSON), Tavily Search API
-**Frontend** — React, Vite, Tailwind CSS, Framer Motion, Recharts
+After building, load frontend/client/dist as an unpacked Chromium extension. Highlight a claim and select **Check with CUDA AI** from its context menu. It opens the website with the selection in a URL fragment, which is cleared after the form is populated. The user must submit the check. The extension does not request access to every website.
 
 ## License
 
-MIT
+MIT.

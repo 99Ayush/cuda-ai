@@ -37,3 +37,7 @@ coverage/
 
 # Misc
 *.local
+
+# Generated installable extension assets
+frontend/client/public/cuda-ai-extension/
+frontend/client/public/cuda-ai-extension.zip

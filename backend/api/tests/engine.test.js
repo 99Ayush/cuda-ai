@@ -157,6 +157,35 @@ test("sources are deduplicated and unsafe or self-citing URLs excluded", () => {
   );
   assert.equal(rows.length, 1);
 });
+
+test("contradictory excerpts from one source cannot establish a definitive verdict", () => {
+  const supporting = "The original study found support for this conclusion.";
+  const refuting = "A follow-up study found evidence against this conclusion.";
+  const groups = [normalizeSources([{ ...source, content: `${supporting} ${refuting}` }], 0)];
+  const evidence = [
+    { source_id: "1-1", quote: supporting, stance: "SUPPORTS" },
+    { source_id: "1-1", quote: refuting, stance: "REFUTES" },
+  ];
+  for (const verdict of ["TRUE", "FALSE"]) {
+    for (const references of [evidence, [...evidence].reverse()]) {
+      const rows = validateAnalysis(modelOutput({ verdict, evidence: references }), [claim], groups);
+      assert.equal(rows[0].verdict, "UNVERIFIED");
+    }
+  }
+  const mixed = validateAnalysis(modelOutput({ verdict: "MIXED", evidence: [...evidence, evidence[0]] }), [claim], groups);
+  assert.equal(mixed[0].verdict, "MIXED");
+  assert.equal(mixed[0].evidence.length, 2);
+});
+
+test("article publisher pages and subdomains are excluded after retrieval", () => {
+  const rows = normalizeSources([
+    { ...source, url: "https://example.com/another-page" },
+    { ...source, url: "https://www.example.com/another-page" },
+    { ...source, url: "https://news.example.com/story" },
+    { ...source, url: "https://otherexample.com/independent" },
+  ], 0, "https://www.example.com/article");
+  assert.deepEqual(rows.map(row => row.url), ["https://otherexample.com/independent"]);
+});
 test("article content is extracted before search; its domain is excluded", async () => {
   const events = [];
   const result = await createEngine(
@@ -279,5 +308,34 @@ test("blocked and truncated model responses never produce a saved verdict", asyn
       ),
       (error) => error.code === "ANALYSIS_INCOMPLETE",
     );
+  }
+});
+
+test("transient upstream and network failures are retried once within the deadline", async () => {
+  for (const failure of [503, "network"]) {
+    let calls = 0;
+    const provider = createProviders(config, async () => {
+      calls++;
+      if (calls === 1) {
+        if (failure === "network") throw new TypeError("fetch failed");
+        return new Response("temporarily unavailable", { status: failure });
+      }
+      return Response.json({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify(modelOutput()) }] } }] });
+    });
+    const result = await provider.generate("Check", {}, { type: "OBJECT" }, AbortSignal.timeout(3000));
+    assert.equal(result.claims[0].verdict, "FALSE");
+    assert.equal(calls, 2);
+  }
+});
+
+test("authentication and quota failures do not trigger retry requests", async () => {
+  for (const status of [403, 429]) {
+    let calls = 0;
+    const provider = createProviders(config, async () => {
+      calls++;
+      return new Response("unavailable", { status });
+    });
+    await assert.rejects(provider.generate("Check", {}, { type: "OBJECT" }, AbortSignal.timeout(3000)));
+    assert.equal(calls, 1);
   }
 });

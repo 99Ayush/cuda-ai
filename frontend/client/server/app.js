@@ -7,6 +7,7 @@ const { loadConfig } = require("./config.js");
 const { createProviders } = require("./providers.js");
 const { createEngine } = require("./engine.js");
 const { ServiceError } = require("./errors.js");
+const { createScreenExtractor } = require("./screen.js");
 
 function createApp(options = {}) {
   const config = options.config || loadConfig();
@@ -40,7 +41,8 @@ function createApp(options = {}) {
     const origin = req.get("origin");
     if (origin) {
       const ownOrigin = `${req.protocol}://${req.get("host")}`;
-      if (origin !== ownOrigin && !config.allowedOrigins.includes(origin))
+      const extensionOrigin = /^chrome-extension:\/\/[a-p]{32}$/.test(origin);
+      if (origin !== ownOrigin && !extensionOrigin && !config.allowedOrigins.includes(origin))
         return next(
           new ServiceError(
             403,
@@ -56,7 +58,10 @@ function createApp(options = {}) {
     if (req.method === "OPTIONS") return res.sendStatus(204);
     next();
   });
-  app.use(express.json({ limit: "16kb" }));
+  app.use((req, res, next) => {
+    const screen = req.path === "/api/extract-screen" || (req.path === "/api" && req.query.route === "extract-screen");
+    express.json({ limit: screen ? "6mb" : "16kb" })(req, res, next);
+  });
   // Query routing keeps the same handler usable in Vercel's Vite deployment.
   app.use((req, res, next) => {
     if (
@@ -89,12 +94,18 @@ function createApp(options = {}) {
       configured: {
         evidence: !!config.tavilyKey,
         analysis: !!config.geminiKey,
+        google: !!config.googleKey,
+        google_mode: config.googleEngineId ? "web_search" : "fact_check_index",
       },
       history: "browser",
       version: "3.0.0",
       test_mode: options.testMode === true,
     }),
   );
+  app.post("/api/extract-screen", limiter, async (req, res, next) => {
+    try { res.json(await createScreenExtractor(config, providers)(req.body)); }
+    catch (error) { next(error); }
+  });
   app.post(
     ["/api/analyze-claim", "/analyze-claim"],
     limiter,

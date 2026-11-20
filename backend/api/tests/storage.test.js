@@ -60,3 +60,34 @@ test("corrupted, unsafe and unavailable browser storage is handled", async () =>
   );
   assert.deepEqual(readHistory(null), []);
 });
+
+test("history rejects metadata that crashes rendering or produces invalid timing", async () => {
+  const { validResult, readHistory, HISTORY_KEY } = await storageModule;
+  const result = await createEngine(config, providers())({ text: "Lightning never strikes the same place twice." });
+  const badRows = [
+    { ...result, latency_ms: undefined },
+    { ...result, latency_ms: -1 },
+    { ...result, warnings: "not an array" },
+    { ...result, warnings: [{ message: "not renderable" }] },
+    { ...result, id: "" },
+    { ...result, claims: [] },
+  ];
+  const invalidProvider = structuredClone(result);
+  invalidProvider.claims[0].sources[0].provider = { name: "Tavily" };
+  badRows.push(invalidProvider);
+  for (const row of badRows) assert.equal(validResult(row), false);
+  const storage = memoryStore();
+  storage.setItem(HISTORY_KEY, JSON.stringify([...badRows, result]));
+  assert.equal(readHistory(storage).length, 1);
+  assert.equal(readHistory(storage)[0].id, result.id);
+});
+
+test("duplicate history IDs are removed before display and persistence", async () => {
+  const { readHistory, saveHistory, HISTORY_KEY } = await storageModule;
+  const result = await createEngine(config, providers())({ text: "Lightning never strikes the same place twice." });
+  const storage = memoryStore();
+  storage.setItem(HISTORY_KEY, JSON.stringify([result, result, { ...result, id: "second" }]));
+  assert.deepEqual(readHistory(storage).map(row => row.id), [result.id, "second"]);
+  assert.equal(saveHistory([result, result], storage), true);
+  assert.equal(JSON.parse(storage.getItem(HISTORY_KEY)).length, 1);
+});

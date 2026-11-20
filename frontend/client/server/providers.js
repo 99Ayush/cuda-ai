@@ -1,6 +1,27 @@
 const { ServiceError } = require("./errors.js");
+const { setTimeout: delay } = require("node:timers/promises");
 
 function createProviders(config, transport = fetch) {
+  async function request(endpoint, options) {
+    // Retry one transient failure within the existing request deadline.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await transport(endpoint, options);
+        if (attempt === 0 && [408, 500, 502, 503, 504].includes(response.status)) {
+          await response.body?.cancel();
+          await delay(500, undefined, { signal: options.signal });
+          continue;
+        }
+        return response;
+      } catch (error) {
+        if (attempt === 0 && error.name === "TypeError" && !options.signal.aborted) {
+          await delay(500, undefined, { signal: options.signal });
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
   async function post(
     provider,
     endpoint,
@@ -10,7 +31,7 @@ function createProviders(config, transport = fetch) {
     timeout = 22000,
   ) {
     try {
-      const response = await transport(endpoint, {
+      const response = await request(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify(body),
@@ -30,6 +51,9 @@ function createProviders(config, transport = fetch) {
             "PROVIDER_QUOTA",
             `${provider} has reached its usage limit. Please try again later.`,
           );
+        }
+        if (response.status === 503 && provider === "Gemini") {
+          throw new ServiceError(503, "PROVIDER_BUSY", "Gemini is experiencing high demand. Please retry this check shortly.");
         }
         if (response.status === 404 && provider === "Gemini") {
           throw new ServiceError(
@@ -74,7 +98,7 @@ function createProviders(config, transport = fetch) {
     }
   }
 
-  async function generate(task, data, schema, signal) {
+  async function generate(task, data, schema, signal, image) {
     const body = {
       systemInstruction: {
         parts: [
@@ -86,21 +110,27 @@ Use only the supplied evidence for factual judgments. Lack of evidence does not 
           },
         ],
       },
-      contents: [{ role: "user", parts: [{ text: JSON.stringify(data) }] }],
+      contents: [{ role: "user", parts: [{ text: JSON.stringify(data) }, ...(image ? [{ inlineData: image }] : [])] }],
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
         maxOutputTokens: 6000,
       },
     };
-    const response = await post(
-      "Gemini",
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`,
-      body,
-      { "x-goog-api-key": config.geminiKey },
-      signal,
-      30000,
+    const callModel = model => post(
+      "Gemini", `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      body, { "x-goog-api-key": config.geminiKey }, signal, 30000,
     );
+    let usedModel = config.model;
+    let response;
+    const models = [...new Set([config.model, config.fallbackModel, config.backupModel].filter(Boolean))];
+    for (let index = 0; index < models.length; index++) {
+      usedModel = models[index];
+      try { response = await callModel(usedModel); break; }
+      catch (error) {
+        if (!["PROVIDER_BUSY", "MODEL_UNAVAILABLE", "PROVIDER_TIMEOUT"].includes(error.code) || index === models.length - 1 || signal.aborted) throw error;
+      }
+    }
     const candidate = response.candidates?.[0];
     if (
       !candidate ||
@@ -117,7 +147,9 @@ Use only the supplied evidence for factual judgments. Lack of evidence does not 
       .map((part) => part.text || "")
       .join("");
     try {
-      return JSON.parse(raw);
+      const output = JSON.parse(raw);
+      if (output && typeof output === "object") Object.defineProperty(output, "_model", { value: usedModel });
+      return output;
     } catch {
       throw new ServiceError(
         502,
@@ -152,7 +184,44 @@ Use only the supplied evidence for factual judgments. Lack of evidence does not 
           "INVALID_EVIDENCE",
           "The search provider returned invalid evidence. Please try again.",
         );
-      return response.results;
+      const results = response.results.map(result => ({ ...result, provider: "Tavily" }));
+      results.warnings = [];
+      if (config.googleKey) {
+        try {
+          const endpoint = new URL(config.googleEngineId
+            ? "https://www.googleapis.com/customsearch/v1"
+            : "https://factchecktools.googleapis.com/v1alpha1/claims:search");
+          endpoint.searchParams.set(config.googleEngineId ? "q" : "query", query.slice(0, 400));
+          if (config.googleEngineId) {
+            endpoint.searchParams.set("cx", config.googleEngineId);
+            endpoint.searchParams.set("num", "4");
+          } else endpoint.searchParams.set("pageSize", "4");
+          const google = await request(endpoint.href, {
+            headers: { "x-goog-api-key": config.googleKey },
+            signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]),
+          });
+          if (!google.ok) throw new Error("Google search unavailable");
+          const data = await google.json();
+          const extras = config.googleEngineId
+            ? (data.items || []).map(item => ({ url: item.link, title: item.title, content: item.snippet, provider: "Google Search" }))
+            : (data.claims || []).flatMap(item => (item.claimReview || []).map(review => ({
+              url: review.url, title: review.title,
+              content: `Claim reviewed: ${item.text}. Fact-check by ${review.publisher?.name || "the publisher"}: ${review.textualRating}. ${review.title || ""}`,
+              published_date: review.reviewDate, provider: "Google Fact Check",
+            })));
+          // Interleave providers so Google results survive the source cap.
+          const merged = [];
+          for (let i = 0; i < Math.max(results.length, extras.length); i++) {
+            if (results[i]) merged.push(results[i]);
+            if (extras[i]) merged.push(extras[i]);
+          }
+          merged.warnings = results.warnings;
+          return merged;
+        } catch {
+          results.warnings.push("Google evidence search is unavailable for this check. The finding uses Tavily sources.");
+        }
+      }
+      return results;
     },
     async extract(url, signal) {
       const response = await post(

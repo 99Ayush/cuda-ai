@@ -11,6 +11,7 @@ import {
   Clock3,
   FileText,
   Link2,
+  ChevronDown,
 } from "lucide-react";
 import { downloadJson } from "./storage.js";
 const labels = {
@@ -45,6 +46,22 @@ export function VerdictBadge({ verdict }) {
     </span>
   );
 }
+function SourceCard({ source, index, cited }) {
+  const published = Number.isFinite(Date.parse(source.published_at));
+  return (
+    <a className={`source-card ${cited ? "source-cited" : ""}`} href={source.url} target="_blank" rel="noopener noreferrer">
+      <div className="source-top">
+        <span className="source-index">{String(index + 1).padStart(2, "0")}</span>
+        <span className="source-publisher">{source.publisher}</span>
+        <ArrowUpRight size={16} />
+      </div>
+      <h4>{source.title}</h4>
+      <p>{source.content.slice(0, 180)}{source.content.length > 180 ? "…" : ""}</p>
+      <div className="source-card-meta"><span className={`source-use ${cited ? "cited" : ""}`}>{cited ? "Cited evidence" : "Retrieved source"}</span><span>{source.provider || "Tavily"}</span></div>
+      <span className="source-date">{published ? `Published ${new Date(source.published_at).toLocaleDateString()}` : "Publication date unavailable"}</span>
+    </a>
+  );
+}
 export default function Result({ result }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
@@ -54,6 +71,14 @@ export default function Result({ result }) {
       result.claims.flatMap((c) => c.sources).map((s) => [s.url, s]),
     ).values(),
   ];
+  const singleClaim = result.claims.length === 1;
+  const citedUrls = new Set(result.claims.flatMap(claim => claim.evidence.flatMap(evidence => {
+    const source = claim.sources.find(item => item.id === evidence.source_id);
+    return source ? [source.url] : [];
+  })));
+  const citedSources = sources.filter(source => citedUrls.has(source.url));
+  const primarySources = citedSources.length ? citedSources : sources.slice(0, 2);
+  const additionalSources = sources.filter(source => !primarySources.includes(source));
   async function copy() {
     const text = [
       result.input,
@@ -81,10 +106,9 @@ export default function Result({ result }) {
         </div>
         <div>
           <span className="eyebrow">THE FINDING</span>
-          <h2>{label}</h2>
+          <h2 id="result-title" tabIndex={-1}>{label}</h2>
           <p>{detail}</p>
         </div>
-        <VerdictBadge verdict={result.verdict} />
       </div>
       <div className="checked-input">
         <span className="eyebrow">
@@ -95,6 +119,7 @@ export default function Result({ result }) {
         <p>{result.input}</p>
       </div>
       <p className="result-summary">{result.summary}</p>
+      {result.warnings?.map((warning, index) => <p className="notice" role="status" key={index}>{warning}</p>)}
       <div className="result-meta">
         <span>
           <Clock3 size={14} />
@@ -105,8 +130,7 @@ export default function Result({ result }) {
         </span>
         <span>
           <Link2 size={14} />
-          {sources.length} retrieved{" "}
-          {sources.length === 1 ? "source" : "sources"}
+          {citedSources.length} cited · {sources.length} retrieved
         </span>
         <span>{(result.latency_ms / 1000).toFixed(1)}s</span>
       </div>
@@ -120,22 +144,23 @@ export default function Result({ result }) {
       <div className="claim-findings">
         {result.claims.map((claim, index) => (
           <section className="claim-finding" key={index}>
-            <div className="claim-number">
+            {!singleClaim && <div className="claim-number">
               {String(index + 1).padStart(2, "0")}
-            </div>
+            </div>}
             <div className="claim-content">
               <div className="claim-top">
-                <h3>{claim.claim}</h3>
-                <VerdictBadge verdict={claim.verdict} />
+                <h3>{singleClaim ? "Evidence for this finding" : claim.claim}</h3>
+                {!singleClaim && <VerdictBadge verdict={claim.verdict} />}
               </div>
-              <p>{claim.explanation}</p>
+              {(!singleClaim || claim.explanation.trim() !== result.summary.trim()) && <p>{claim.explanation}</p>}
               <span className="evidence-strength">
                 {claim.evidence_strength}
               </span>
+              {!claim.evidence.length && <p className="evidence-empty">No cited excerpt established a supported or refuted finding.</p>}
               {claim.evidence.map((e, i) => {
                 const source = claim.sources.find((s) => s.id === e.source_id);
                 return (
-                  <blockquote key={i}>
+                  <blockquote className={`evidence-quote evidence-${e.stance.toLowerCase()}`} key={i}>
                     <p>“{e.quote}”</p>
                     <footer>
                       <span
@@ -166,38 +191,13 @@ export default function Result({ result }) {
       {sources.length > 0 && (
         <section className="sources-section">
           <div className="section-title">
-            <h3>Read the sources</h3>
-            <span>Retrieved for this check</span>
+            <h3>{citedSources.length ? "Cited sources" : "Retrieved sources"}</h3>
+            <span>{citedSources.length ? "Used in this finding" : "Not enough evidence for a verdict"}</span>
           </div>
           <div className="source-grid">
-            {sources.map((source, index) => (
-              <a
-                className="source-card"
-                href={source.url}
-                key={source.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <div className="source-top">
-                  <span className="source-index">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span>{source.publisher}</span>
-                  <ArrowUpRight size={17} />
-                </div>
-                <h4>{source.title}</h4>
-                <p>
-                  {source.content.slice(0, 180)}
-                  {source.content.length > 180 ? "…" : ""}
-                </p>
-                <span className="source-date">
-                  {source.published_at
-                    ? `Published ${new Date(source.published_at).toLocaleDateString()}`
-                    : "Publication date not supplied"}
-                </span>
-              </a>
-            ))}
+            {primarySources.map((source, index) => <SourceCard key={source.url} source={source} index={index} cited={citedUrls.has(source.url)} />)}
           </div>
+          {additionalSources.length > 0 && <details className="sources-disclosure"><summary>Show {additionalSources.length} additional retrieved {additionalSources.length === 1 ? "source" : "sources"}<ChevronDown size={16} /></summary><p>These were retrieved for this check and are not cited in the finding above.</p><div className="source-grid">{additionalSources.map((source, index) => <SourceCard key={source.url} source={source} index={primarySources.length + index} cited={false} />)}</div></details>}
         </section>
       )}
       <div className="report-actions">

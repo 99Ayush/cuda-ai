@@ -5,7 +5,7 @@ const reactHooks = unwrap(require("eslint-plugin-react-hooks"));
 const reactRefresh = unwrap(require("eslint-plugin-react-refresh"));
 const { defineConfig, globalIgnores } = require("eslint/config");
 module.exports = defineConfig([
-  globalIgnores(["dist", "node_modules"]),
+  globalIgnores(["dist", "node_modules", "public/cuda-ai-extension"]),
   {
     files: ["src/**/*.{js,jsx}"],
     extends: [
@@ -22,6 +22,7 @@ module.exports = defineConfig([
   {
     files: [
       "server/**/*.js",
+      "scripts/**/*.js",
       "api/**/*.js",
       "vite.config.js",
       "eslint.config.js",
@@ -30,8 +31,8 @@ module.exports = defineConfig([
     languageOptions: { globals: globals.node, sourceType: "commonjs" },
   },
   {
-    files: ["public/background.js"],
+    files: ["extension/**/*.js"],
     extends: [js.configs.recommended],
-    languageOptions: { globals: { ...globals.browser, chrome: "readonly" } },
+    languageOptions: { sourceType: "script", globals: { ...globals.browser, chrome: "readonly" } },
   },
 ]);

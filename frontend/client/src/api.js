@@ -1,4 +1,11 @@
 const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+function requestFailure(error, signal, message) {
+  if (signal?.aborted)
+    return new Error("Check cancelled. Your input is still here when you are ready.", { cause: error });
+  if (error.name === "TimeoutError" || error.name === "AbortError")
+    return new Error("This check took too long. Please try again.", { cause: error });
+  return new Error(message, { cause: error });
+}
 export async function apiRequest(path, options = {}) {
   let response;
   try {
@@ -10,28 +17,25 @@ export async function apiRequest(path, options = {}) {
         : AbortSignal.timeout(110000),
     });
   } catch (error) {
-    if (options.signal?.aborted)
-      throw new Error(
-        "Check cancelled. Your input is still here when you are ready.",
-        { cause: error },
-      );
-    if (error.name === "TimeoutError" || error.name === "AbortError")
-      throw new Error("This check took too long. Please try again.", {
-        cause: error,
-      });
-    throw new Error(
+    throw requestFailure(error, options.signal,
       "Could not reach the fact-checking service. Check your connection and try again.",
-      { cause: error },
     );
   }
   if (!response.headers.get("content-type")?.includes("application/json"))
     throw new Error(
       "The fact-checking service is unavailable. Please try again later.",
     );
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch (error) {
+    throw requestFailure(error, options.signal,
+      "The service returned an unreadable response. Please try again.",
+    );
+  }
   if (!response.ok)
     throw new Error(
-      typeof data.message === "string"
+      typeof data?.message === "string"
         ? data.message
         : "The check could not be completed. Please try again.",
     );

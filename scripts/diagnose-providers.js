@@ -1,6 +1,6 @@
-const { loadConfig } = require("../frontend/client/server/config.js");
-const { createProviders } = require("../frontend/client/server/providers.js");
-const { createEngine } = require("../frontend/client/server/engine.js");
+const { loadConfig } = require("../apps/api/src/config.js");
+const { createProviders } = require("../apps/api/src/providers.js");
+const { createEngine } = require("../apps/api/src/engine.js");
 const config = loadConfig();
 const transport = async (url, options) => {
   try {

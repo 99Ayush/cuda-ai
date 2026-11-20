@@ -1,0 +1,7 @@
+node_modules
+dist
+docs/audit
+AUDIT.md
+eval/results
+apps/web/public/claimlens-extension
+apps/web/public/claimlens-extension.zip

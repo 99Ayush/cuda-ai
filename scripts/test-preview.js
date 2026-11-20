@@ -1,5 +1,5 @@
 const { setTimeout: delay } = require("node:timers/promises");
-const { createApp } = require("../frontend/client/server/app.js");
+const { createApp } = require("../apps/api/src/app.js");
 if (!process.argv.includes("--fixtures")) {
   throw new Error("Simulation requires --fixtures. Use npm start for real fact checking.");
 }

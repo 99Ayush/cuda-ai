@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ClaimLens Screen Check</title><link rel="stylesheet" href="panel.css"></head>
+<body><main>
+  <header><span class="eyebrow">CUDA_CORE // SCREEN_CHECK</span><h1>Verify what you see.</h1><p>Capture a screen or select text. Review the claim before checking it.</p></header>
+  <div class="capture-actions"><button id="capture">Capture screen</button><button id="selection" class="secondary">Use selected text</button></div>
+  <section id="preview" hidden><img id="screenshot" alt="Your captured screen"><button id="read">Read claims from screenshot</button><button id="discard" class="secondary">Discard screenshot</button><p class="muted">Only “Read claims” sends this screenshot to Gemini. Screenshots are never saved in history.</p></section>
+  <div id="choices" aria-label="Extracted claims"></div>
+  <form id="check-form"><label for="claim">Claim to verify</label><textarea id="claim" rows="5" minlength="8" maxlength="2000" required placeholder="Paste a claim, or read it from your screenshot."></textarea><div class="count" id="count">0 / 2000</div><button id="verify" type="submit">Verify claim</button></form>
+  <p id="status" role="status" aria-live="polite"></p><p id="error" role="alert" hidden></p>
+  <section id="result" aria-label="Fact-check result" hidden></section>
+  <details id="settings"><summary>Settings &amp; extension switch</summary><label class="switch"><input id="enabled" type="checkbox" checked> Enable screen checking</label><form id="api-form"><label for="api-url">Fact-checking service URL</label><input id="api-url" type="url" required placeholder="https://cuda-ai.vercel.app"><button type="submit" class="secondary">Save connection</button></form><p class="muted">Use your deployed ClaimLens backend, or http://localhost:18082 during development. The website tab can stay closed. A local backend must keep running.</p><button id="clear-history" class="secondary">Clear extension history</button></details>
+  <p class="muted">Checks factual text against web evidence. This does not authenticate an image or guarantee a claim is true. API keys stay on the backend.</p>
+</main><script src="panel.js"></script></body></html>

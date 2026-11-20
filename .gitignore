@@ -34,6 +34,11 @@ Thumbs.db
 
 # Testing
 coverage/
+work/
+data/
+test-results/
+playwright-report/
+eval/results/
 
 # Misc
 *.local
@@ -41,3 +46,7 @@ coverage/
 # Generated installable extension assets
 frontend/client/public/cuda-ai-extension/
 frontend/client/public/cuda-ai-extension.zip
+apps/web/public/cuda-ai-extension/
+apps/web/public/cuda-ai-extension.zip
+apps/web/public/claimlens-extension/
+apps/web/public/claimlens-extension.zip

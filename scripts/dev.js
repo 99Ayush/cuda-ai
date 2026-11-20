@@ -2,14 +2,14 @@ const { spawn } = require("node:child_process");
 const path = require("node:path");
 const { createRequire } = require("node:module");
 const root = path.resolve(__dirname, "..");
-const client = path.join(root, "frontend/client");
+const client = path.join(root, "apps/web");
 const resolve = createRequire(path.join(client, "package.json")).resolve;
 const vite = path.join(
   path.dirname(resolve("vite/package.json")),
   "bin/vite.js",
 );
 const children = [
-  spawn(process.execPath, ["--watch", "backend/api/index.js"], {
+  spawn(process.execPath, ["--watch", "apps/api/index.js"], {
     cwd: root,
     stdio: "inherit",
     windowsHide: true,

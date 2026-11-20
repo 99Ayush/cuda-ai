@@ -1,4 +1,4 @@
-# CUDA AI
+# ClaimLens
 
 A fact-checking website for claims and public articles. It retrieves web evidence with Tavily and uses Gemini to compare that evidence with the claim. Findings are **Supported**, **Refuted**, **Mixed findings**, or **Unverified**, with exact source excerpts and links.
 
@@ -24,7 +24,7 @@ The built website is then available at http://localhost:8080.
 
 To review the interface without provider credentials, run `npm run build` followed by `npm run preview:test`. Open http://127.0.0.1:18081. This local-only preview uses controlled provider fixtures and displays a test-data banner; it does not perform live fact checks. It exercises claim and article results, missing evidence, unreadable articles, provider errors and cancellation. Example fixture inputs include `no evidence for this claim`, `provider unavailable for this claim`, `provider quota for this claim`, and `slow check for this claim`.
 
-Configure GEMINI*API_KEY and TAVILY_API_KEY in your environment. The server also loads local .env files at the repository root, backend/api, or frontend/client; existing environment variables take precedence. The root .env.example documents the configuration. Do not put provider secrets in VITE* variables or commit them.
+Configure GEMINI*API_KEY and TAVILY_API_KEY in your environment. The server also loads local .env files at the repository root, apps/api, or apps/web; existing environment variables take precedence. The root .env.example documents the configuration. Do not put provider secrets in VITE* variables or commit them.
 
 | Setting         | Purpose                                                                               |
 | --------------- | ------------------------------------------------------------------------------------- |
@@ -39,16 +39,16 @@ Gemini 2.5 Flash is deprecated and is limited to existing users until December 1
 
 ## Deploy on Vercel
 
-Connect the GitHub repository to your existing Vercel project. Both the **repository root** and **frontend/client** are supported project root directories. Their vercel.json files build the Vite UI and route API requests to the same serverless Express handler.
+Connect the GitHub repository to your existing Vercel project. Both the **repository root** and **apps/web** are supported project root directories. Their vercel.json files build the Vite UI and route API requests to the same serverless Express handler.
 
 - Add GEMINI_API_KEY and TAVILY_API_KEY as server-side environment variables. Enable them for the environments you intend to test: Preview and Production.
 - Use Vite as the framework preset and a supported Node version of 22 or later.
-- For repository-root deployments, the output directory is frontend/client/dist. For frontend/client deployments, it is dist.
+- For repository-root deployments, the output directory is apps/web/dist. For apps/web deployments, it is dist.
 - Remove old project-level command/output overrides if they contradict the committed configuration.
 - Redeploy after changing environment variables. Existing deployments do not receive new values automatically.
 - Verify /api/health and submit a real claim after deployment. A health response of ready confirms configuration presence, not provider credentials or available quota.
 
-The server lives inside frontend/client/server so a Vercel project rooted at frontend/client can trace all its runtime sources. backend/api/index.js remains the local Node entry point. The root and frontend API adapters share the same implementation.
+The server lives inside apps/api/src so a Vercel project rooted at apps/web can trace all its runtime sources. apps/api/index.js remains the local Node entry point. The root and frontend API adapters share the same implementation.
 
 ## Behavior and privacy
 
@@ -93,11 +93,11 @@ The Node tests cover HTTP routes, validation, provider outages, evidence groundi
 
 ## Optional browser extension
 
-Settings includes **Add as extension**, a downloadable installable ZIP, connection controls and a persistent screen-checking switch. Run `npm run extension:build` or `npm run build`, extract `frontend/client/public/cuda-ai-extension.zip`, and load its folder through Chrome/Edge’s **Load unpacked**. You can also load `frontend/client/extension` directly.
+Settings includes **Add as extension**, a downloadable installable ZIP, connection controls and a persistent screen-checking switch. Run `npm run extension:build` or `npm run build`, extract `apps/web/public/claimlens-extension.zip`, and load its folder through Chrome/Edge’s **Load unpacked**. You can also load `apps/web/extension` directly.
 
 Click the toolbar icon to open the independent side panel. **Capture screen** captures the visible page locally; **Read claims from screenshot** sends the reviewed screenshot to Gemini. Edit the claim and click **Verify claim** to retrieve Tavily evidence and a validated Gemini verdict. Selected text and right-click verification are supported. Closing the website does not disable the installed extension. Keep the browser running and, for localhost, keep the backend running.
 
-The extension stores up to 20 text reports locally and never stores screenshots. Reload the website after installation to connect or toggle the extension from Settings. Public one-click installation requires publishing to Chrome Web Store or Edge Add-ons; the current ZIP supports development installation. See the [extension guide](frontend/client/extension/README.md) for permissions and custom backend configuration.
+The extension stores up to 20 text reports locally and never stores screenshots. Reload the website after installation to connect or toggle the extension from Settings. Public one-click installation requires publishing to Chrome Web Store or Edge Add-ons; the current ZIP supports development installation. See the [extension guide](apps/web/extension/README.md) for permissions and custom backend configuration.
 
 The server tries `GEMINI_FALLBACK_MODEL` when the primary model is busy or unavailable, using the same evidence and citation validation; the report records the actual model. Authentication and quota failures do not trigger model switching. Optional Google search stays disabled with `GOOGLE_SEARCH_ENABLED=false`. If enabled, the key alone uses Google’s fact-check index; `GOOGLE_SEARCH_ENGINE_ID` enables general Custom Search. Both require the corresponding Google API to be enabled. A Google outage is visible in the report and does not discard Tavily evidence.
 

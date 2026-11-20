@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "ClaimLens — Screen Fact Checker",
+  "version": "3.1.0",
+  "minimum_chrome_version": "116",
+  "description": "Capture visible claims, review the text, and verify against web evidence without opening the website.",
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "contextMenus"],
+  "host_permissions": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "side_panel": { "default_path": "panel.html" },
+  "action": { "default_title": "Check screen with ClaimLens" },
+  "content_scripts": [{
+    "matches": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
+    "js": ["bridge.js"]
+  }]
+}

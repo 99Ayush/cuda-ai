@@ -1,21 +1,28 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Download, Puzzle, RefreshCw } from "lucide-react";
-function extensionRequest(type, data = {}) {
+import {z} from "zod";
+import type {Health} from "@claimlens/shared";
+const ExtensionStatus=z.object({installed:z.boolean(),enabled:z.boolean(),apiUrl:z.string(),version:z.string()});
+type Status=z.infer<typeof ExtensionStatus>;
+type RequestType="get-status"|"set-enabled"|"connect";
+function extensionRequest(type:RequestType, data:{enabled?:boolean;apiUrl?:string} = {}):Promise<Status> {
   return new Promise((resolve, reject) => {
     const id = crypto.randomUUID();
     const timeout = setTimeout(() => { window.removeEventListener("message", receive); reject(new Error("Extension not detected. Install it, reload this page, then check again.")); }, 2500);
-    function receive(event) {
-      if (event.source !== window || event.origin !== window.location.origin || event.data?.channel !== "CUDA_AI_EXTENSION" || event.data.id !== id) return;
+    function receive(event:MessageEvent<unknown>) {
+      const parsed=z.object({channel:z.literal("CUDA_AI_EXTENSION"),id:z.string(),ok:z.boolean(),data:z.unknown().optional(),error:z.string().optional()}).safeParse(event.data);
+      if (event.source !== window || event.origin !== window.location.origin || !parsed.success || parsed.data.id !== id) return;
       clearTimeout(timeout); window.removeEventListener("message", receive);
-      if (event.data.ok) resolve(event.data.data);
-      else reject(new Error(event.data.error || "The extension did not respond."));
+      const status=ExtensionStatus.safeParse(parsed.data.data);
+      if (parsed.data.ok&&status.success) resolve(status.data);
+      else reject(new Error(parsed.data.error || "The extension did not return a valid status."));
     }
     window.addEventListener("message", receive);
     window.postMessage({ channel: "CUDA_AI_WEBSITE", id, type, ...data }, window.location.origin);
   });
 }
-export default function Settings({ health }) {
-  const [extension, setExtension] = useState(null);
+export default function Settings({ health }: {health:Health}) {
+  const [extension, setExtension] = useState<Status|null>(null);
   const [checking, setChecking] = useState(true);
   const [notice, setNotice] = useState("");
   useEffect(() => {
@@ -23,12 +30,12 @@ export default function Settings({ health }) {
     extensionRequest("get-status").then(data => { if (active) setExtension(data); }).catch(() => {}).finally(() => { if (active) setChecking(false); });
     return () => { active = false; };
   }, []);
-  async function update(type, data) {
+  async function update(type:RequestType, data:{enabled?:boolean;apiUrl?:string}={}) {
     const previous = extension;
-    if (type === "set-enabled") setExtension({ ...extension, enabled: data.enabled });
+    if (type === "set-enabled"&&extension&&typeof data.enabled==="boolean") setExtension({ ...extension, enabled: data.enabled });
     setChecking(true); setNotice("");
     try { setExtension(await extensionRequest(type, data)); setNotice(type === "connect" ? "Extension connected to this backend." : type === "get-status" ? "Extension detected." : "Extension settings updated."); }
-    catch (error) { if (type === "set-enabled") setExtension(previous); setNotice(error.message); }
+    catch (error) { if (type === "set-enabled") setExtension(previous); setNotice(error instanceof Error?error.message:"The extension could not be reached."); }
     finally { setChecking(false); }
   }
   return <section className="settings-view">

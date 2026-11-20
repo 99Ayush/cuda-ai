@@ -1,0 +1,49 @@
+{
+  "recorded_at": "2026-11-20T19:05:21.174Z",
+  "node": "v22.23.2",
+  "probes": {
+    "empty_article": {
+      "api_verdict": "UNVERIFIED",
+      "claims": 0,
+      "browser_accepts": false
+    },
+    "missing_required_claim_kind": {
+      "input_has_claim_kind": false,
+      "accepted_verdict": "FALSE"
+    },
+    "single_source": {
+      "verdict": "FALSE",
+      "evidence_strength": "Single source",
+      "independent_publishers": 1
+    },
+    "url_lexical_only": {
+      "input": "http://127.0.0.1.nip.io/article",
+      "accepted_url": "http://127.0.0.1.nip.io/article",
+      "note": "No DNS lookup or actual SSRF attempted; article extraction uses Tavily."
+    },
+    "tracking_url_duplicates": {
+      "retained_sources": 2
+    },
+    "client_disconnect": {
+      "upstream_completed": true,
+      "upstream_aborted": false
+    },
+    "offline_preview": {
+      "documented_command_script": "npm run build && npm start",
+      "fixture_script": "node scripts/test-preview.js --fixtures",
+      "fixture_port": 18089,
+      "ui_blocks_test_mode": true
+    }
+  },
+  "dataset": {
+    "cases": 30,
+    "missing_source_or_license": 30,
+    "allowed_verdict_counts": {
+      "TRUE": 14,
+      "FALSE": 12,
+      "MIXED": 3,
+      "UNVERIFIED": 3
+    }
+  },
+  "source_hash": "3adda019984d4a59ab304cd552868e5ceff565ff53a517310975620b4aba4faa"
+}

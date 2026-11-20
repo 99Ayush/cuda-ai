@@ -1,1 +1,1 @@
-module.exports=require('../../api/src/app.js').createApp();
+module.exports=require('../../api/dist/app.js').createApp();

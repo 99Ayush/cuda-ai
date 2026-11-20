@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev.js",
-    "start": "node apps/api/index.js",
+    "start": "node apps/api/dist/index.js",
     "preview:test": "npm run demo",
     "preview:fixtures": "node scripts/test-preview.js --fixtures",
     "build": "npm run build:shared && npm run build:api && npm run build:web",
@@ -21,7 +21,7 @@
     "lint": "eslint scripts apps/api/tests --config eslint.config.js && npm run lint --workspace=@claimlens/web",
     "test": "npm run build:shared && npm run build:api && node scripts/test.cjs",
     "check": "npm run typecheck && npm run test && npm run lint && npm run build",
-    "demo": "npm run build && node scripts/test-preview.js --fixtures",
+    "demo": "npm run build && node scripts/demo.cjs",
     "build:shared": "tsc -p packages/shared/tsconfig.json",
     "typecheck": "npm run build:shared && tsc -p apps/api/tsconfig.json --noEmit",
     "format": "prettier --write .",

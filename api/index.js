@@ -1,1 +1,1 @@
-module.exports = require("../apps/api/src/app.js").createApp();
+module.exports = require("../apps/api/dist/app.js").createApp();

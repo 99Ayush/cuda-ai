@@ -50,16 +50,17 @@
         >
         <form id="api-form">
           <label for="api-url">Fact-checking service URL</label
-          ><input
-            id="api-url"
-            type="url"
-            required
-            placeholder="https://cuda-ai.vercel.app"
-          /><button type="submit" class="secondary">Save connection</button>
+          ><input id="api-url" type="url" required placeholder="http://localhost:8080" /><button
+            type="submit"
+            class="secondary"
+          >
+            Save connection
+          </button>
         </form>
         <p class="muted">
-          Use your deployed ClaimLens backend, or http://localhost:18082 during development. The
-          website tab can stay closed. A local backend must keep running.
+          Use your deployed ClaimLens backend, http://localhost:8080 for the local server, or
+          http://localhost:18089 for the offline fixture preview. The website tab can stay closed. A
+          local backend must keep running.
         </p>
         <button id="clear-history" class="secondary">Clear extension history</button>
       </details>

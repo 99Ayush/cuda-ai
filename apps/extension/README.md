@@ -8,7 +8,7 @@
 
 The installed extension remains available when the website tab closes. It uses the backend directly. Manifest V3 workers sleep when idle and wake on interaction; no continuous screen monitoring runs. Keep Chrome or Edge running. Firefox and Safari are not supported by this package.
 
-In panel Settings, use your deployed HTTPS backend URL. For development, enter http://localhost:18082 and keep the backend running. The default is https://cuda-ai.vercel.app. Provider keys are never included. Google web search requires GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID; with the key alone the backend uses Google’s Fact Check Tools index if that API is enabled.
+In panel Settings, use your deployed HTTPS backend URL. The default is http://localhost:8080, the local backend started by `npm start`. To exercise the UI without provider credentials, start `npm run preview:test` and enter http://localhost:18089 instead; it returns controlled fixture responses. Provider keys are never included. Google web search requires GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID; with the key alone the backend uses Google’s Fact Check Tools index if that API is enabled.
 
 Enable screen checking is a persistent switch. Reload the website after installation, then use website Settings to connect this backend or toggle the extension. The bridge supports the default deployment and localhost. For custom deployments add your origin to content_scripts.matches and host_permissions in manifest.json before installation.
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ClaimLens — Screen Fact Checker",
-  "version": "3.1.0",
+  "version": "3.0.0",
   "minimum_chrome_version": "116",
   "description": "Capture visible claims, review the text, and verify against web evidence without opening the website.",
   "permissions": ["activeTab", "scripting", "storage", "sidePanel", "contextMenus"],

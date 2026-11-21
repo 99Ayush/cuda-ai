@@ -1,6 +1,6 @@
 # ClaimLens
 
-A fact-checking website for claims and public articles. It retrieves web evidence with Tavily and uses Gemini to compare that evidence with the claim. Findings are **Supported**, **Refuted**, **Mixed findings**, or **Unverified**, with exact source excerpts and links.
+A fact-checking website for claims and public articles. It retrieves web evidence with Tavily and uses Gemini to compare that evidence with the claim. Findings use the contract values **TRUE**, **FALSE**, **MIXED**, or **UNVERIFIED** (shown in the UI as Supported, Refuted, Mixed findings, or Unverified), with exact source excerpts and links.
 
 The website does not generate a true/false verdict from keywords or the absence of evidence. Every cited source ID and quotation is checked against retrieved content. AI judgments can still be wrong; users should read the original sources.
 
@@ -86,10 +86,12 @@ A report contains id, input, input_type, verdict, summary, claims, source_count,
 
 ```sh
 npm run check
+npm run eval:validate
 npm audit
+npm run e2e          # needs a Playwright Chromium kernel; runs against the offline demo server
 ```
 
-The Node tests cover HTTP routes, validation, provider outages, evidence grounding, article extraction, private history, rate limiting and corrupted browser storage. They use injected provider fixtures and never require real API keys. GitHub Actions runs tests, lint, build and the dependency audit on pull requests and main.
+The Node tests cover HTTP routes, validation, provider outages, evidence grounding, article extraction, private history, rate limiting and corrupted browser storage. They use injected provider fixtures and never require real API keys. `npm run eval:validate` checks the 130-case FEVER-derived dataset and its recorded provenance offline; it does not measure accuracy. The Playwright specs cover the fixture UI, cancellation, recovery, export/import, keyboard shortcuts and responsive layout. GitHub Actions runs a `check` job (tests, lint, build, dataset validation, dependency audit) and an `e2e` job on pull requests and main.
 
 ## Optional browser extension
 
@@ -97,7 +99,7 @@ Settings includes **Add as extension**, a downloadable installable ZIP, connecti
 
 Click the toolbar icon to open the independent side panel. **Capture screen** captures the visible page locally; **Read claims from screenshot** sends the reviewed screenshot to Gemini. Edit the claim and click **Verify claim** to retrieve Tavily evidence and a validated Gemini verdict. Selected text and right-click verification are supported. Closing the website does not disable the installed extension. Keep the browser running and, for localhost, keep the backend running.
 
-The extension stores up to 20 text reports locally and never stores screenshots. Reload the website after installation to connect or toggle the extension from Settings. Public one-click installation requires publishing to Chrome Web Store or Edge Add-ons; the current ZIP supports development installation. See the [extension guide](apps/web/extension/README.md) for permissions and custom backend configuration.
+The extension stores up to 20 text reports locally and never stores screenshots. Reload the website after installation to connect or toggle the extension from Settings. Public one-click installation requires publishing to Chrome Web Store or Edge Add-ons; the current ZIP supports development installation. See the [extension guide](apps/extension/README.md) for permissions and custom backend configuration.
 
 The server tries `GEMINI_FALLBACK_MODEL` when the primary model is busy or unavailable, using the same evidence and citation validation; the report records the actual model. Authentication and quota failures do not trigger model switching. Optional Google search stays disabled with `GOOGLE_SEARCH_ENABLED=false`. If enabled, the key alone uses Google’s fact-check index; `GOOGLE_SEARCH_ENGINE_ID` enables general Custom Search. Both require the corresponding Google API to be enabled. A Google outage is visible in the report and does not discard Tavily evidence.
 

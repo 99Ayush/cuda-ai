@@ -7,13 +7,9 @@
 
 # Dependencies
 node_modules/
-backend/api/node_modules/
-frontend/client/node_modules/
 
 # Build outputs
 dist/
-backend/api/dist/
-frontend/client/dist/
 
 # Logs
 *.log
@@ -44,9 +40,5 @@ eval/results/
 *.local
 
 # Generated installable extension assets
-frontend/client/public/cuda-ai-extension/
-frontend/client/public/cuda-ai-extension.zip
-apps/web/public/cuda-ai-extension/
-apps/web/public/cuda-ai-extension.zip
 apps/web/public/claimlens-extension/
 apps/web/public/claimlens-extension.zip

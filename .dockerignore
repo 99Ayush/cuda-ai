@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+work
+data
+eval/results
+playwright-report
+test-results
+docs/audit/*.txt

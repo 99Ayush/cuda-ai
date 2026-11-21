@@ -22,7 +22,7 @@ npm start
 
 The built website is then available at http://localhost:8080.
 
-To review the interface without provider credentials, run `npm run build` followed by `npm run preview:test`. Open http://127.0.0.1:18081. This local-only preview uses controlled provider fixtures and displays a test-data banner; it does not perform live fact checks. It exercises claim and article results, missing evidence, unreadable articles, provider errors and cancellation. Example fixture inputs include `no evidence for this claim`, `provider unavailable for this claim`, `provider quota for this claim`, and `slow check for this claim`.
+To review the interface without provider credentials, run `npm run build` followed by `npm run preview:test`. Open http://127.0.0.1:18089. This local-only preview uses controlled provider fixtures and displays a test-data banner; it does not perform live fact checks. It exercises claim and article results, missing evidence, unreadable articles, provider errors and cancellation. Example fixture inputs include `no evidence for this claim`, `provider unavailable for this claim`, `provider quota for this claim`, and `slow check for this claim`.
 
 Configure GEMINI*API_KEY and TAVILY_API_KEY in your environment. The server also loads local .env files at the repository root, apps/api, or apps/web; existing environment variables take precedence. The root .env.example documents the configuration. Do not put provider secrets in VITE* variables or commit them.
 
@@ -91,7 +91,7 @@ npm audit
 npm run e2e          # needs a Playwright Chromium kernel; runs against the offline demo server
 ```
 
-The Node tests cover HTTP routes, validation, provider outages, evidence grounding, article extraction, private history, rate limiting and corrupted browser storage. They use injected provider fixtures and never require real API keys. `npm run eval:validate` checks the 130-case FEVER-derived dataset and its recorded provenance offline; it does not measure accuracy. The Playwright specs cover the fixture UI, cancellation, recovery, export/import, keyboard shortcuts and responsive layout. GitHub Actions runs a `check` job (tests, lint, build, dataset validation, dependency audit) and an `e2e` job on pull requests and main.
+The Node tests cover HTTP routes, validation, provider outages, evidence grounding, article extraction, private history, rate limiting, corrupted browser storage, and the extension's manifest, panel, background worker and website bridge. They use injected provider fixtures and never require real API keys. `npm run eval:validate` checks the 130-case FEVER-derived dataset and its recorded provenance offline; it does not measure accuracy. The Playwright specs cover the fixture UI, cancellation, recovery, export/import, keyboard shortcuts and responsive layout. GitHub Actions runs a `check` job (tests, lint, build, dataset validation, dependency audit) and an `e2e` job on pull requests and main.
 
 ## Optional browser extension
 

@@ -11,7 +11,7 @@ ClaimLens is a local-first fact-checking tool. It retrieves web evidence with Ta
 - **Grounding is enforced, not prompted.** Citations reference registered excerpts; the server substitutes verbatim text and rejects invented references. Changed numbers and flipped negation are caught by quote review. See ADR-001.
 - **Policy is a separate layer.** Independent-source counts, affiliated-domain grouping, freshness rules and subjective/future abstention are deterministic code with direct tests, not model behaviour.
 - **Real security engineering.** SSRF-resistant URL validation with property tests, prompt-injection delimiters, strict schemas, bounded bodies, CORS allowlisting, rate limiting, sanitized errors and no submitted text in logs. See ADR-002.
-- **A meaningful verification gate.** 64 Node tests, 7 Playwright specs, strict TypeScript, lint, build, dependency audit, dataset integrity validation. CI runs all of it except the container image.
+- **A meaningful verification gate.** 77 Node tests (including 13 for the extension), 7 Playwright specs, strict TypeScript, lint, build, dependency audit, dataset integrity validation. CI runs all of it except the container image.
 - **Honest reporting.** The status document explicitly says accuracy is unmeasured and Docker was not run. That is a strength if you own it.
 
 ## Likely questions and candid answers
@@ -41,7 +41,7 @@ npm ci
 npm run check
 npm run eval:validate
 npm run e2e
-npm run build && npm run preview:test   # http://127.0.0.1:18081
+npm run build && npm run preview:test   # http://127.0.0.1:18089
 ```
 
 Try `no evidence for this claim`, `provider quota for this claim`, and `slow check for this claim` to exercise abstention, error recovery and cancellation.
@@ -50,7 +50,7 @@ Try `no evidence for this claim`, `provider quota for this claim`, and `slow che
 
 - No measured accuracy baseline; no real-provider integration test.
 - Docker image defined but not executed here (no Docker/Podman/WSL).
-- No tests for the extension bundles or the SQL adapters.
+- No tests for the SQL adapters; the extension package itself has 13 automated tests plus a manual Chromium load.
 - Large dashboard component; decorative "protocol/telemetry" styling may read as style-over-substance.
 - Local `.env` contains credentials for local use; it is gitignored and absent from history, but must be rotated before sharing the working directory.
 

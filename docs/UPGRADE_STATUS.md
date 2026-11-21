@@ -8,7 +8,7 @@ This run was limited to localhost work by the user. No deployment or cloud accou
 
 Commands were run from the repository root with Node `v22.23.2` and npm `11.13.0`.
 
-- `npm run check` passes: strict typecheck, 64/64 tests, lint and production build of shared, API, web and extension.
+- `npm run check` passes: strict typecheck, 77/77 tests (64 API/web plus 13 extension), lint and production build of shared, API, web and extension.
 - `npm audit --audit-level=high` reports 0 vulnerabilities.
 - `npm run format:check` passes after one repository-wide Prettier normalization.
 - `npm run e2e` passes 7/7 Playwright specs against the offline demo server on 21 November 2026 using the locally installed Chromium kernel (17.4 s). This is browser-level verification of the fixture UI, not provider accuracy.
@@ -27,8 +27,8 @@ No factual performance score, accuracy figure or completion claim beyond these o
 - **Security (Phase 3):** DNS validation with private and mapped-address blocking, pinned fetches, bounded redirects, body and content-type limits, production headers and extension-only CORS.
 - **Evaluation data (Phase 4):** `eval/build-dataset.cjs` builds a FEVER-derived dataset with recorded source revision, SHA-256, licence and category counts into `eval/data/`. It was built earlier in this workspace. No measured baseline comparison was produced locally.
 - **Website (Phase 5):** dark dashboard with shared design tokens, typed streaming results, evidence display, local history and statistics, cancellation, accessibility-oriented markup and copy/export controls.
-- **Extension (Phase 6):** Manifest V3 side panel, selected text, context menu, local screenshot capture with reviewed reading claims, cancellation and failure handling, and a separate local text-report history.
-- **Contracts and CI (Phase 7):** 64 node tests cover routes, validation, provider behaviour, evidence grounding, cancellation, storage and OpenAPI. GitHub Actions has a `check` job (`npm run check`, dataset validation, dependency audit) and an `e2e` job that installs Chromium and runs the 7 Playwright specs. All specs were also executed locally during finalization.
+- **Extension (Phase 6):** Manifest V3 side panel, selected text, context menu, local screenshot capture with reviewed reading claims, cancellation and failure handling, and a separate local text-report history. The unpacked package was loaded in Chromium: it opened the panel without page errors, connected to the offline demo backend, returned a grounded fixture result and wrote history. Its manifest, panel, background worker and website bridge are covered by 13 automated tests.
+- **Contracts and CI (Phase 7):** 77 node tests cover routes, validation, provider behaviour, evidence grounding, cancellation, storage, version reporting, OpenAPI and the extension package. GitHub Actions has a `check` job (`npm run check`, dataset validation, dependency audit) and an `e2e` job that installs Chromium and runs the 7 Playwright specs. All specs were also executed locally during finalization.
 - **Local container (Phase 8):** `Dockerfile` and `docker-compose.yml` added for a Node 24 runtime with optional Postgres profile. Docker, Podman and WSL are absent on this host, so image execution remains unverified.
 - **Documentation (Phase 9):** `AUDIT.md`, `docs/audit/` (with a note that its snapshots predate the migration), `docs/DEPENDENCIES.md`, three `docs/ADR-*.md` records, `docs/INTERVIEW.md`, README, extension guide and this status record the architecture, decisions, interview trade-offs, audit evidence and verification commands.
 
@@ -52,4 +52,4 @@ npm run e2e          # requires a Playwright Chromium kernel
 npm run dev          # UI on http://localhost:5173, API on 8080
 ```
 
-With no provider credentials, `npm run build && npm run preview:test` serves controlled fixtures on `http://127.0.0.1:18081` with a test-data banner.
+With no provider credentials, `npm run build && npm run preview:test` serves controlled fixtures on `http://127.0.0.1:18089` with a test-data banner.

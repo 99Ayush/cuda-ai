@@ -18,6 +18,8 @@
     "build": "npm run build:shared && npm run build:api && npm run build:web",
     "extension:build": "node scripts/build-extension.js",
     "benchmark": "node scripts/benchmark.js",
+    "eval:validate": "node eval/validate-dataset.cjs",
+    "e2e": "playwright test",
     "lint": "eslint scripts apps/api/tests apps/api/src packages/shared/src --config eslint.config.js && npm run lint --workspace=@claimlens/web",
     "test": "npm run build:shared && npm run build:api && node scripts/test.cjs",
     "check": "npm run typecheck && npm run test && npm run lint && npm run build",

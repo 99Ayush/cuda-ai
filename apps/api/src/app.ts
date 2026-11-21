@@ -8,7 +8,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
-import { ResultSchema, type Result } from "@claimlens/shared";
+import { APP_VERSION, ResultSchema, type Result } from "@claimlens/shared";
 import { loadConfig, resolveConfig, type EngineConfig } from "./config";
 import { createProviders } from "./providers";
 import { createMockProviders } from "./mock";
@@ -165,7 +165,7 @@ export function createApp(options: AppOptions = {}) {
       google_mode: config.googleEngineId ? "web_search" : "fact_check_index",
     },
     history: "browser",
-    version: "1.0.0",
+    version: APP_VERSION,
     test_mode: config.demo,
     persistence: config.persistenceEnabled,
   });

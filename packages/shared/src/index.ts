@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Single source of truth for the API version reported by health and OpenAPI. */
+export const APP_VERSION = "3.0.0";
+
 export const VerdictSchema = z.enum(["TRUE", "FALSE", "MIXED", "UNVERIFIED"]);
 export const ClaimKindSchema = z.enum(["FACTUAL", "QUESTION", "OPINION", "PREDICTION"]);
 export const StanceSchema = z.enum(["SUPPORTS", "REFUTES", "CONTEXT"]);
@@ -153,9 +156,6 @@ export const CheckInputSchema = z.union([
 export const ExtractionSchema = z
   .object({ claims: z.array(z.string().trim().min(8).max(2000)).max(3) })
   .strict();
-export const QuerySchema = z
-  .object({ queries: z.array(z.string().trim().min(3).max(400)).min(2).max(4) })
-  .strict();
 export const ScreenSchema = z
   .object({
     text: z.string().max(6000),
@@ -197,4 +197,3 @@ export type ProgressEvent = { stage: Stage; detail: string; elapsed_ms: number }
 export function validResult(value: unknown): value is Result {
   return ResultSchema.safeParse(value).success;
 }
-export const CONTRACT_VERSION = 1;

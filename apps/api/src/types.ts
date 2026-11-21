@@ -31,5 +31,4 @@ export interface Providers {
 export type EngineOptions = {
   signal?: AbortSignal;
   onProgress?: (event: { stage: Stage; detail: string; elapsed_ms: number }) => void;
-  now?: () => number;
 };

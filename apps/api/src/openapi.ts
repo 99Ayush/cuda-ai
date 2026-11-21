@@ -5,6 +5,7 @@ import {
   ApiErrorSchema,
   HealthSchema,
   ScreenSchema,
+  APP_VERSION,
 } from "@claimlens/shared";
 const json = (schema: z.ZodType) => ({
   "application/json": { schema: z.toJSONSchema(schema, { target: "openapi-3.0" }) },
@@ -14,7 +15,7 @@ export function openApi() {
     openapi: "3.0.3",
     info: {
       title: "ClaimLens API",
-      version: "1.0.0",
+      version: APP_VERSION,
       description:
         "Local-first evidence verification. Persistence is explicit opt-in; results are AI-assisted.",
     },

@@ -45,7 +45,6 @@ export default function App() {
     [preparedUrl, setPreparedUrl] = useState("");
   const controller = useRef<AbortController | null>(null),
     checking = useRef(false),
-    recheck = useRef(false),
     historyRef = useRef(history);
   const resultRef = useRef<HTMLDivElement | null>(null),
     fieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -165,7 +164,6 @@ export default function App() {
       else setError(message);
     } finally {
       checking.current = false;
-      recheck.current = false;
       setLoading(false);
     }
   }
@@ -220,11 +218,10 @@ export default function App() {
     }
     const input: CheckInput =
       mode === "claim"
-        ? { text: claim.trim(), recheck: recheck.current }
+        ? { text: claim.trim() }
         : {
             pageUrl: claim.trim(),
             ...(selectedClaims.length ? { selectedClaims } : {}),
-            recheck: recheck.current,
           };
     await execute(input);
   }

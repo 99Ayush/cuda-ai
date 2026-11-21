@@ -135,7 +135,13 @@ export async function createStore(
       );
       const raw = rows[0]?.result_json;
       if (typeof raw !== "string") return null;
-      const parsed = ResultSchema.safeParse(JSON.parse(raw));
+      let decoded: unknown;
+      try {
+        decoded = JSON.parse(raw);
+      } catch {
+        return null;
+      }
+      const parsed = ResultSchema.safeParse(decoded);
       return parsed.success ? parsed.data : null;
     },
     async delete(token) {

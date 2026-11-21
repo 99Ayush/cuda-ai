@@ -11,6 +11,3 @@ export class ServiceError extends Error {
 export function abortError(): DOMException {
   return new DOMException("The operation was cancelled", "AbortError");
 }
-export function assertActive(signal?: AbortSignal): void {
-  signal?.throwIfAborted();
-}

@@ -1,5 +1,5 @@
 const { setTimeout: delay } = require("node:timers/promises");
-const { createApp } = require("../apps/api/src/app.js");
+const { createApp } = require("../apps/api/dist/app.js");
 if (!process.argv.includes("--fixtures")) {
   throw new Error("Simulation requires --fixtures. Use npm start for real fact checking.");
 }
@@ -34,8 +34,7 @@ async function transport(endpoint, options) {
     });
   }
   if (endpoint.endsWith("/extract")) {
-    if (body.urls[0].includes("unreadable"))
-      return Response.json({ results: [] });
+    if (body.urls[0].includes("unreadable")) return Response.json({ results: [] });
     return Response.json({
       results: [
         {
@@ -102,13 +101,10 @@ const config = {
   vercel: false,
   rateLimit: 100,
 };
-const server = createApp({ config, transport, testMode: true }).listen(
-  18089,
-  "127.0.0.1",
-  () =>
-    console.log(
-      "SIMULATION http://127.0.0.1:18089 — controlled provider fixtures, no live API calls",
-    ),
+const server = createApp({ config, transport, testMode: true }).listen(18089, "127.0.0.1", () =>
+  console.log(
+    "SIMULATION http://127.0.0.1:18089 — controlled provider fixtures, no live API calls",
+  ),
 );
 for (const signal of ["SIGINT", "SIGTERM"])
   process.once(signal, () => server.close(() => process.exit(0)));

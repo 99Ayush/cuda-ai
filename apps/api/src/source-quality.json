@@ -2,16 +2,48 @@
   "updated": "2026-11-21",
   "note": "Editorial policy signals, not calibrated truth probabilities. Review owners and tiers when adding sources.",
   "domains": {
-    "weather.gov": { "tier": "primary", "owner": "NOAA", "reason": "US weather agency primary information" },
+    "weather.gov": {
+      "tier": "primary",
+      "owner": "NOAA",
+      "reason": "US weather agency primary information"
+    },
     "noaa.gov": { "tier": "primary", "owner": "NOAA", "reason": "US ocean and atmosphere agency" },
-    "usgs.gov": { "tier": "primary", "owner": "USGS", "reason": "US geological agency primary information" },
-    "nasa.gov": { "tier": "primary", "owner": "NASA", "reason": "Space agency primary information" },
-    "bom.gov.au": { "tier": "primary", "owner": "BOM", "reason": "Australian weather agency primary information" },
-    "who.int": { "tier": "primary", "owner": "WHO", "reason": "World Health Organization publications" },
-    "cdc.gov": { "tier": "primary", "owner": "CDC", "reason": "US public health agency publications" },
+    "usgs.gov": {
+      "tier": "primary",
+      "owner": "USGS",
+      "reason": "US geological agency primary information"
+    },
+    "nasa.gov": {
+      "tier": "primary",
+      "owner": "NASA",
+      "reason": "Space agency primary information"
+    },
+    "bom.gov.au": {
+      "tier": "primary",
+      "owner": "BOM",
+      "reason": "Australian weather agency primary information"
+    },
+    "who.int": {
+      "tier": "primary",
+      "owner": "WHO",
+      "reason": "World Health Organization publications"
+    },
+    "cdc.gov": {
+      "tier": "primary",
+      "owner": "CDC",
+      "reason": "US public health agency publications"
+    },
     "nhs.uk": { "tier": "primary", "owner": "NHS", "reason": "UK health service information" },
-    "wikipedia.org": { "tier": "reference", "owner": "Wikimedia", "reason": "Community reference; inspect its cited primary sources" },
-    "reuters.com": { "tier": "news", "owner": "Reuters", "reason": "Named editorial news organization" },
+    "wikipedia.org": {
+      "tier": "reference",
+      "owner": "Wikimedia",
+      "reason": "Community reference; inspect its cited primary sources"
+    },
+    "reuters.com": {
+      "tier": "news",
+      "owner": "Reuters",
+      "reason": "Named editorial news organization"
+    },
     "apnews.com": { "tier": "news", "owner": "AP", "reason": "Named editorial news organization" }
   }
 }

@@ -67,12 +67,12 @@ The UI restores the original dark dashboard: navigation rail, compact claim-or-U
 
 ## API
 
-| Method | Endpoint           | Behavior                                                                              |
-| ------ | ------------------ | ------------------------------------------------------------------------------------- |
-| GET    | /api/health        | Configuration readiness                                                               |
-| POST   | /api/analyze-claim | JSON body with either text or pageUrl                                                 |
-| POST   | /api/extract-screen | PNG/JPEG data URL in image; returns visible text and up to three editable claims |
-| GET    | /api/history       | Compatibility endpoint returning an empty array; private history stays in the browser |
+| Method | Endpoint            | Behavior                                                                              |
+| ------ | ------------------- | ------------------------------------------------------------------------------------- |
+| GET    | /api/health         | Configuration readiness                                                               |
+| POST   | /api/analyze-claim  | JSON body with either text or pageUrl                                                 |
+| POST   | /api/extract-screen | PNG/JPEG data URL in image; returns visible text and up to three editable claims      |
+| GET    | /api/history        | Compatibility endpoint returning an empty array; private history stays in the browser |
 
 Legacy /health, /analyze-claim and /history paths remain available. API responses use Cache-Control: no-store.
 

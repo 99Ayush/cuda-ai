@@ -1,32 +1,152 @@
 [
-  {"id":1,"input":"Earth orbits the Sun.","expected":["TRUE"],"terms":["earth","sun"]},
-  {"id":2,"input":"Berlin is the capital of Germany.","expected":["TRUE"],"terms":["berlin","germany"]},
-  {"id":3,"input":"World War I began in 1914.","expected":["TRUE"],"terms":["1914"]},
-  {"id":4,"input":"Apollo 11 landed humans on the Moon in 1969.","expected":["TRUE"],"terms":["1969"]},
-  {"id":5,"input":"A typical adult human skeleton has 206 bones.","expected":["TRUE"],"terms":["206"]},
-  {"id":6,"input":"The human heart normally has four chambers.","expected":["TRUE"],"terms":["four","4"]},
-  {"id":7,"input":"Pure water boils at 100 degrees Celsius at standard atmospheric pressure.","expected":["TRUE"],"terms":["100","pressure"]},
-  {"id":8,"input":"Whales are mammals.","expected":["TRUE"],"terms":["mammal"]},
-  {"id":9,"input":"The United Nations was founded in 1945.","expected":["TRUE"],"terms":["1945"]},
-  {"id":10,"input":"Canberra is the capital of Australia.","expected":["TRUE"],"terms":["canberra"]},
-  {"id":11,"input":"Paris is the capital of Germany.","expected":["FALSE"],"terms":["berlin","france"]},
-  {"id":12,"input":"The Moon is larger than Earth.","expected":["FALSE"],"terms":["smaller","larger","size"]},
-  {"id":13,"input":"The Sun is a planet.","expected":["FALSE"],"terms":["star"]},
-  {"id":14,"input":"Antibiotics kill viruses.","expected":["FALSE"],"terms":["bacter","virus","viral"]},
-  {"id":15,"input":"Humans use only 10 percent of their brains.","expected":["FALSE"],"terms":["brain"]},
-  {"id":16,"input":"The Great Wall of China is visible from the Moon with the naked eye.","expected":["FALSE"],"terms":["moon","naked"]},
-  {"id":17,"input":"Lightning never strikes the same place twice.","expected":["FALSE"],"terms":["lightning"]},
-  {"id":18,"input":"Vaccines cause autism.","expected":["FALSE"],"terms":["autism"]},
-  {"id":19,"input":"Mount Everest is located in Africa.","expected":["FALSE"],"terms":["asia","nepal","himalaya"]},
-  {"id":20,"input":"Venus is the planet closest to the Sun.","expected":["FALSE"],"terms":["mercury"]},
-  {"id":21,"input":"What is the capital of Japan?","expected":["TRUE"],"terms":["tokyo"]},
-  {"id":22,"input":"Who wrote Pride and Prejudice?","expected":["TRUE"],"terms":["jane austen"]},
-  {"id":23,"input":"How many planets are in our Solar System?","expected":["TRUE"],"terms":["eight","8"]},
-  {"id":24,"input":"When did India gain independence from British rule?","expected":["TRUE"],"terms":["1947"]},
-  {"id":25,"input":"Water always boils at 100 degrees Celsius, regardless of altitude.","expected":["FALSE","MIXED"],"terms":["pressure","altitude"]},
-  {"id":26,"input":"Every year, lightning kills more than 20 people in the United States.","expected":["FALSE","MIXED"],"terms":["year","average"]},
-  {"id":27,"input":"Earth is flat and the Sun is a star.","expected":["MIXED"],"terms":["earth","star"]},
-  {"id":28,"input":"The fictional country Zorbelia signed the invented Treaty of Quxar in 2026.","expected":["UNVERIFIED"],"terms":["zorbelia","fiction","invented"]},
-  {"id":29,"input":"Chocolate is the best ice cream flavor.","expected":["UNVERIFIED"],"terms":["opinion","subjective","preference"]},
-  {"id":30,"input":"NASA will announce confirmed alien life tomorrow.","expected":["UNVERIFIED"],"terms":["confirm","future","evidence"]}
+  { "id": 1, "input": "Earth orbits the Sun.", "expected": ["TRUE"], "terms": ["earth", "sun"] },
+  {
+    "id": 2,
+    "input": "Berlin is the capital of Germany.",
+    "expected": ["TRUE"],
+    "terms": ["berlin", "germany"]
+  },
+  { "id": 3, "input": "World War I began in 1914.", "expected": ["TRUE"], "terms": ["1914"] },
+  {
+    "id": 4,
+    "input": "Apollo 11 landed humans on the Moon in 1969.",
+    "expected": ["TRUE"],
+    "terms": ["1969"]
+  },
+  {
+    "id": 5,
+    "input": "A typical adult human skeleton has 206 bones.",
+    "expected": ["TRUE"],
+    "terms": ["206"]
+  },
+  {
+    "id": 6,
+    "input": "The human heart normally has four chambers.",
+    "expected": ["TRUE"],
+    "terms": ["four", "4"]
+  },
+  {
+    "id": 7,
+    "input": "Pure water boils at 100 degrees Celsius at standard atmospheric pressure.",
+    "expected": ["TRUE"],
+    "terms": ["100", "pressure"]
+  },
+  { "id": 8, "input": "Whales are mammals.", "expected": ["TRUE"], "terms": ["mammal"] },
+  {
+    "id": 9,
+    "input": "The United Nations was founded in 1945.",
+    "expected": ["TRUE"],
+    "terms": ["1945"]
+  },
+  {
+    "id": 10,
+    "input": "Canberra is the capital of Australia.",
+    "expected": ["TRUE"],
+    "terms": ["canberra"]
+  },
+  {
+    "id": 11,
+    "input": "Paris is the capital of Germany.",
+    "expected": ["FALSE"],
+    "terms": ["berlin", "france"]
+  },
+  {
+    "id": 12,
+    "input": "The Moon is larger than Earth.",
+    "expected": ["FALSE"],
+    "terms": ["smaller", "larger", "size"]
+  },
+  { "id": 13, "input": "The Sun is a planet.", "expected": ["FALSE"], "terms": ["star"] },
+  {
+    "id": 14,
+    "input": "Antibiotics kill viruses.",
+    "expected": ["FALSE"],
+    "terms": ["bacter", "virus", "viral"]
+  },
+  {
+    "id": 15,
+    "input": "Humans use only 10 percent of their brains.",
+    "expected": ["FALSE"],
+    "terms": ["brain"]
+  },
+  {
+    "id": 16,
+    "input": "The Great Wall of China is visible from the Moon with the naked eye.",
+    "expected": ["FALSE"],
+    "terms": ["moon", "naked"]
+  },
+  {
+    "id": 17,
+    "input": "Lightning never strikes the same place twice.",
+    "expected": ["FALSE"],
+    "terms": ["lightning"]
+  },
+  { "id": 18, "input": "Vaccines cause autism.", "expected": ["FALSE"], "terms": ["autism"] },
+  {
+    "id": 19,
+    "input": "Mount Everest is located in Africa.",
+    "expected": ["FALSE"],
+    "terms": ["asia", "nepal", "himalaya"]
+  },
+  {
+    "id": 20,
+    "input": "Venus is the planet closest to the Sun.",
+    "expected": ["FALSE"],
+    "terms": ["mercury"]
+  },
+  { "id": 21, "input": "What is the capital of Japan?", "expected": ["TRUE"], "terms": ["tokyo"] },
+  {
+    "id": 22,
+    "input": "Who wrote Pride and Prejudice?",
+    "expected": ["TRUE"],
+    "terms": ["jane austen"]
+  },
+  {
+    "id": 23,
+    "input": "How many planets are in our Solar System?",
+    "expected": ["TRUE"],
+    "terms": ["eight", "8"]
+  },
+  {
+    "id": 24,
+    "input": "When did India gain independence from British rule?",
+    "expected": ["TRUE"],
+    "terms": ["1947"]
+  },
+  {
+    "id": 25,
+    "input": "Water always boils at 100 degrees Celsius, regardless of altitude.",
+    "expected": ["FALSE", "MIXED"],
+    "terms": ["pressure", "altitude"]
+  },
+  {
+    "id": 26,
+    "input": "Every year, lightning kills more than 20 people in the United States.",
+    "expected": ["FALSE", "MIXED"],
+    "terms": ["year", "average"]
+  },
+  {
+    "id": 27,
+    "input": "Earth is flat and the Sun is a star.",
+    "expected": ["MIXED"],
+    "terms": ["earth", "star"]
+  },
+  {
+    "id": 28,
+    "input": "The fictional country Zorbelia signed the invented Treaty of Quxar in 2026.",
+    "expected": ["UNVERIFIED"],
+    "terms": ["zorbelia", "fiction", "invented"]
+  },
+  {
+    "id": 29,
+    "input": "Chocolate is the best ice cream flavor.",
+    "expected": ["UNVERIFIED"],
+    "terms": ["opinion", "subjective", "preference"]
+  },
+  {
+    "id": 30,
+    "input": "NASA will announce confirmed alien life tomorrow.",
+    "expected": ["UNVERIFIED"],
+    "terms": ["confirm", "future", "evidence"]
+  }
 ]

@@ -416,7 +416,7 @@ svg {
   border: 1px solid #2b313a;
   border-radius: 3px;
   font-size: 10px;
-  letter-spacing: .5px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   color: #a3aebb;
 }

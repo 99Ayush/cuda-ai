@@ -1,5 +1,5 @@
 const { once } = require("node:events");
-const { createApp } = require("../../../apps/api/src/app.js");
+const { createApp } = require("../../../apps/api/dist/app.js");
 const config = {
   geminiKey: "test",
   tavilyKey: "test",
@@ -8,6 +8,9 @@ const config = {
   production: false,
   vercel: false,
   rateLimit: 10,
+  // Baseline fixtures exercise pipeline mechanics with one controlled source.
+  // The two-independent-source abstention policy is covered by stages.test.cjs.
+  minimumSources: 1,
 };
 const source = {
   title: "Lightning facts",
@@ -21,12 +24,10 @@ function modelOutput(overrides = {}) {
     claims: [
       {
         claim_index: 0,
+        claim_kind: "FACTUAL",
         verdict: "FALSE",
-        explanation:
-          "Lightning can repeatedly strike the same location, contrary to the claim.",
-        evidence: [
-          { source_id: "1-1", quote: source.content, stance: "REFUTES" },
-        ],
+        explanation: "Lightning can repeatedly strike the same location, contrary to the claim.",
+        evidence: [{ source_id: "1-1", quote: source.content, stance: "REFUTES" }],
         ...overrides,
       },
     ],
@@ -35,8 +36,7 @@ function modelOutput(overrides = {}) {
 function providers(overrides = {}) {
   return {
     search: async () => [source],
-    extract: async () =>
-      "An article asserting that lightning never strikes the same place twice.",
+    extract: async () => "An article asserting that lightning never strikes the same place twice.",
     generate: async (task) =>
       task.startsWith("Extract")
         ? { claims: ["Lightning never strikes the same place twice."] }

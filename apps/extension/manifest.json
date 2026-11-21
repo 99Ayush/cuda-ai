@@ -10,8 +10,10 @@
   "background": { "service_worker": "background.js" },
   "side_panel": { "default_path": "panel.html" },
   "action": { "default_title": "Check screen with ClaimLens" },
-  "content_scripts": [{
-    "matches": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
-    "js": ["bridge.js"]
-  }]
+  "content_scripts": [
+    {
+      "matches": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["bridge.js"]
+    }
+  ]
 }

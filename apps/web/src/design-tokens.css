@@ -1,39 +1,259 @@
-:root { --color-bg:#020203; --color-panel:#0c0c0f; --color-text:#ededf0; --color-secondary:#a3a3b1; --color-accent:#95bcff; --color-focus:#95bcff; --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px; --radius:8px; }
-.theme-toggle { width:44px; height:44px; display:grid; place-items:center; border:1px solid var(--line); border-radius:6px; color:var(--color-accent); }
-.pipeline-stages { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; list-style:none; padding:0; max-width:600px; }
-.pipeline-stages li { padding:8px 10px; border:1px solid var(--line); border-radius:5px; color:var(--color-secondary); font-size:12px; }
-.pipeline-stages li.current { color:var(--color-accent); border-color:#4285f466; background:#4285f414; }
-.article-choices { margin-top:18px; padding:16px; border:1px solid var(--line); border-radius:8px; background:var(--color-panel); }
-.article-choices > p { font-size:13px; line-height:1.7; color:var(--color-secondary); }
-.article-choices label { display:flex; align-items:flex-start; gap:10px; padding:12px 0; font-size:14px; line-height:1.65; border-top:1px solid var(--line); }
-.article-choices input { margin-top:5px; accent-color:#4285f4; }
-.history-verdict { padding:9px; border:1px solid var(--line); border-radius:5px; background:var(--color-panel); color:var(--color-text); min-height:44px; max-width:100%; }
-.history-toolbar { flex-wrap:wrap; gap:12px; }
-.history-search { flex:1 1 220px; min-width:0; }
-.source-quality { display:inline-flex; padding:4px 6px; font-size:11px; border:1px solid #4285f444; border-radius:4px; color:var(--color-accent); }
-.confidence-note,.cache-note { font-size:12px; line-height:1.7; color:var(--color-secondary); }
-.evidence-group-label { margin-top:18px; font-size:13px; color:var(--color-accent); }
-.quoted-text { background:#4285f416; color:inherit; }
-.verification-trace { border-top:1px solid var(--line); padding:16px 24px; }
-.verification-trace summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-size:13px; color:var(--color-accent); }
-.verification-trace ol { padding-left:20px; font-size:13px; color:var(--color-secondary); line-height:1.9; }
-.command-list { display:flex; flex-direction:column; gap:8px; }
-.command-list button { text-align:left; padding:12px; min-height:44px; border:1px solid var(--line); border-radius:5px; }
-button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible { outline:2px solid var(--color-focus); outline-offset:3px; }
-:root[data-theme="light"] { color-scheme:light; --color-bg:#f4f7fc; --color-panel:#fff; --color-text:#1e293b; --color-secondary:#475569; --color-accent:#245fc4; --color-focus:#245fc4; --line:#cbd5e1; }
-[data-theme="light"] .dashboard-shell { background:var(--color-bg); color:var(--color-text); }
-[data-theme="light"] .navigation-rail,[data-theme="light"] .dashboard-header,[data-theme="light"] .telemetry-sidebar,[data-theme="light"] .system-footer { background:#f8fafc; }
-[data-theme="light"] .scan-form,[data-theme="light"] .result-panel,[data-theme="light"] .source-card,[data-theme="light"] .stat-card,[data-theme="light"] .history-row,[data-theme="light"] .history-toolbar,[data-theme="light"] .settings-card,[data-theme="light"] .system-dialog,[data-theme="light"] .resource-card,[data-theme="light"] .telemetry-row,[data-theme="light"] .install-guide,[data-theme="light"] .report-actions,[data-theme="light"] .result-meta { background:var(--color-panel); color:var(--color-text); }
-[data-theme="light"] .scan-form textarea,[data-theme="light"] .history-search input,[data-theme="light"] .history-open h2,[data-theme="light"] .claim-content h3,[data-theme="light"] .source-card h4 { color:var(--color-text); }
-[data-theme="light"] .view-description,[data-theme="light"] .scan-help,[data-theme="light"] .source-card p,[data-theme="light"] .claim-content p,[data-theme="light"] .result-summary,[data-theme="light"] .standby-subtitle,[data-theme="light"] .telemetry-note,[data-theme="light"] .resource-caption,[data-theme="light"] .settings-card p,[data-theme="light"] .install-steps li,[data-theme="light"] .history-open p,[data-theme="light"] .section-label,[data-theme="light"] .system-dialog p { color:var(--color-secondary); }
-[data-theme="light"] .standby-panel { background-color:#fff; }
-[data-theme="light"] .radar-core { background:#eaf0fb; }
-[data-theme="light"] .core-label,[data-theme="light"] .guard-label,[data-theme="light"] .rail-item,[data-theme="light"] .section-label h1,[data-theme="light"] .section-label h2 { color:var(--color-accent); }
-[data-theme="light"] .example-claims button,[data-theme="light"] .secondary-button { background:#edf3ff; color:#245fc4; }
-[data-theme="light"] .evidence-quote { background:#f8fafc; color:var(--color-text); }
-[data-theme="light"] .guard-label strong,[data-theme="light"] .system-footer strong { color:var(--color-text); }
-[data-theme="light"] .telemetry-row > span:nth-child(2),[data-theme="light"] .system-footer span,[data-theme="light"] .system-footer p,[data-theme="light"] .history-date,[data-theme="light"] .section-label > span { color:var(--color-secondary); }
-[data-theme="light"] .status-tag { color:#047857; background:#e8f5ee; }
-[data-theme="light"] .status-tag.idle { color:#475569; background:#f1f5f9; }
-[data-theme="light"] .amber { color:#996000; }
-@media(max-width:700px) { .history-verdict { width:100%; } .verification-trace { padding-inline:16px; } }
+:root {
+  --color-bg: #020203;
+  --color-panel: #0c0c0f;
+  --color-text: #ededf0;
+  --color-secondary: #a3a3b1;
+  --color-accent: #95bcff;
+  --color-focus: #95bcff;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius: 8px;
+}
+.theme-toggle {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--color-accent);
+}
+.pipeline-stages {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  max-width: 600px;
+}
+.pipeline-stages li {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--color-secondary);
+  font-size: 12px;
+}
+.pipeline-stages li.current {
+  color: var(--color-accent);
+  border-color: #4285f466;
+  background: #4285f414;
+}
+.article-choices {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--color-panel);
+}
+.article-choices > p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-secondary);
+}
+.article-choices label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  font-size: 14px;
+  line-height: 1.65;
+  border-top: 1px solid var(--line);
+}
+.article-choices input {
+  margin-top: 5px;
+  accent-color: #4285f4;
+}
+.history-verdict {
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--color-panel);
+  color: var(--color-text);
+  min-height: 44px;
+  max-width: 100%;
+}
+.history-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.history-search {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.source-quality {
+  display: inline-flex;
+  padding: 4px 6px;
+  font-size: 11px;
+  border: 1px solid #4285f444;
+  border-radius: 4px;
+  color: var(--color-accent);
+}
+.confidence-note,
+.cache-note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--color-secondary);
+}
+.evidence-group-label {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--color-accent);
+}
+.quoted-text {
+  background: #4285f416;
+  color: inherit;
+}
+.verification-trace {
+  border-top: 1px solid var(--line);
+  padding: 16px 24px;
+}
+.verification-trace summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-accent);
+}
+.verification-trace ol {
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--color-secondary);
+  line-height: 1.9;
+}
+.command-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.command-list button {
+  text-align: left;
+  padding: 12px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f4f7fc;
+  --color-panel: #fff;
+  --color-text: #1e293b;
+  --color-secondary: #475569;
+  --color-accent: #245fc4;
+  --color-focus: #245fc4;
+  --line: #cbd5e1;
+}
+[data-theme="light"] .dashboard-shell {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+[data-theme="light"] .navigation-rail,
+[data-theme="light"] .dashboard-header,
+[data-theme="light"] .telemetry-sidebar,
+[data-theme="light"] .system-footer {
+  background: #f8fafc;
+}
+[data-theme="light"] .scan-form,
+[data-theme="light"] .result-panel,
+[data-theme="light"] .source-card,
+[data-theme="light"] .stat-card,
+[data-theme="light"] .history-row,
+[data-theme="light"] .history-toolbar,
+[data-theme="light"] .settings-card,
+[data-theme="light"] .system-dialog,
+[data-theme="light"] .resource-card,
+[data-theme="light"] .telemetry-row,
+[data-theme="light"] .install-guide,
+[data-theme="light"] .report-actions,
+[data-theme="light"] .result-meta {
+  background: var(--color-panel);
+  color: var(--color-text);
+}
+[data-theme="light"] .scan-form textarea,
+[data-theme="light"] .history-search input,
+[data-theme="light"] .history-open h2,
+[data-theme="light"] .claim-content h3,
+[data-theme="light"] .source-card h4 {
+  color: var(--color-text);
+}
+[data-theme="light"] .view-description,
+[data-theme="light"] .scan-help,
+[data-theme="light"] .source-card p,
+[data-theme="light"] .claim-content p,
+[data-theme="light"] .result-summary,
+[data-theme="light"] .standby-subtitle,
+[data-theme="light"] .telemetry-note,
+[data-theme="light"] .resource-caption,
+[data-theme="light"] .settings-card p,
+[data-theme="light"] .install-steps li,
+[data-theme="light"] .history-open p,
+[data-theme="light"] .section-label,
+[data-theme="light"] .system-dialog p {
+  color: var(--color-secondary);
+}
+[data-theme="light"] .standby-panel {
+  background-color: #fff;
+}
+[data-theme="light"] .radar-core {
+  background: #eaf0fb;
+}
+[data-theme="light"] .core-label,
+[data-theme="light"] .guard-label,
+[data-theme="light"] .rail-item,
+[data-theme="light"] .section-label h1,
+[data-theme="light"] .section-label h2 {
+  color: var(--color-accent);
+}
+[data-theme="light"] .example-claims button,
+[data-theme="light"] .secondary-button {
+  background: #edf3ff;
+  color: #245fc4;
+}
+[data-theme="light"] .evidence-quote {
+  background: #f8fafc;
+  color: var(--color-text);
+}
+[data-theme="light"] .guard-label strong,
+[data-theme="light"] .system-footer strong {
+  color: var(--color-text);
+}
+[data-theme="light"] .telemetry-row > span:nth-child(2),
+[data-theme="light"] .system-footer span,
+[data-theme="light"] .system-footer p,
+[data-theme="light"] .history-date,
+[data-theme="light"] .section-label > span {
+  color: var(--color-secondary);
+}
+[data-theme="light"] .status-tag {
+  color: #047857;
+  background: #e8f5ee;
+}
+[data-theme="light"] .status-tag.idle {
+  color: #475569;
+  background: #f1f5f9;
+}
+[data-theme="light"] .amber {
+  color: #996000;
+}
+@media (max-width: 700px) {
+  .history-verdict {
+    width: 100%;
+  }
+  .verification-trace {
+    padding-inline: 16px;
+  }
+}

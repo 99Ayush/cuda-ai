@@ -22,7 +22,12 @@ module.exports = defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     plugins: { "@typescript-eslint": tsPlugin },
-    rules: { "no-undef": "off", "no-unused-vars": "off", "no-empty": ["error", { allowEmptyCatch: true }], "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }] },
+    rules: {
+      "no-undef": "off",
+      "no-unused-vars": "off",
+      "no-empty": ["error", { allowEmptyCatch: true }],
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+    },
   },
   {
     files: [

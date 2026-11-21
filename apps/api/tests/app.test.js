@@ -18,10 +18,7 @@ test("app imports without listening and exposes configured readiness", async (t)
 });
 test("unconfigured app reports setup required and rejects analysis", async (t) => {
   const base = await server(t, { config: { ...config, tavilyKey: "" } });
-  assert.equal(
-    (await (await fetch(base + "/api/health")).json()).status,
-    "setup_required",
-  );
+  assert.equal((await (await fetch(base + "/api/health")).json()).status, "setup_required");
   assert.equal((await post(base, { text: claim })).status, 503);
 });
 test("real HTTP analysis returns grounded result and private history stays empty", async (t) => {
@@ -54,42 +51,26 @@ test("cross-origin abuse is blocked and explicitly allowed origins work", async 
     config: { ...config, allowedOrigins: ["https://allowed.example"] },
   });
   assert.equal(
-    (await post(base, { text: claim }, { Origin: "https://untrusted.example" }))
-      .status,
+    (await post(base, { text: claim }, { Origin: "https://untrusted.example" })).status,
     403,
   );
-  const response = await post(
-    base,
-    { text: claim },
-    { Origin: "https://allowed.example" },
-  );
+  const response = await post(base, { text: claim }, { Origin: "https://allowed.example" });
   assert.equal(response.status, 200);
-  assert.equal(
-    response.headers.get("access-control-allow-origin"),
-    "https://allowed.example",
-  );
+  assert.equal(response.headers.get("access-control-allow-origin"), "https://allowed.example");
 });
 test("IP spoofing cannot bypass local rate limits", async (t) => {
   const base = await server(t, { config: { ...config, rateLimit: 1 } });
   assert.equal(
-    (await post(base, { text: claim }, { "X-Forwarded-For": "198.51.100.1" }))
-      .status,
+    (await post(base, { text: claim }, { "X-Forwarded-For": "198.51.100.1" })).status,
     200,
   );
-  const response = await post(
-    base,
-    { text: claim },
-    { "X-Forwarded-For": "198.51.100.2" },
-  );
+  const response = await post(base, { text: claim }, { "X-Forwarded-For": "198.51.100.2" });
   assert.equal(response.status, 429);
   assert.equal((await response.json()).error, "RATE_LIMITED");
 });
 test("Vercel query rewrite and legacy endpoints share handlers", async (t) => {
   const base = await server(t);
-  assert.equal(
-    (await (await fetch(base + "/api?route=health")).json()).status,
-    "ready",
-  );
+  assert.equal((await (await fetch(base + "/api?route=health")).json()).status, "ready");
   assert.equal((await (await fetch(base + "/health")).json()).status, "ready");
   const response = await fetch(base + "/analyze-claim", {
     method: "POST",

@@ -1,38 +1,361 @@
-import {useState,useEffect,useRef,Fragment} from "react";
-import {ArrowUpRight,Download,Copy,Check,Clock3,FileText,Link2,ChevronDown,RefreshCw,Share2} from "lucide-react";
-import type {Result as CheckResult,Source} from "@claimlens/shared";
+import { useState, useEffect, useRef, Fragment } from "react";
+import {
+  ArrowUpRight,
+  Download,
+  Copy,
+  Check,
+  Clock3,
+  FileText,
+  Link2,
+  ChevronDown,
+  RefreshCw,
+  Share2,
+} from "lucide-react";
+import type { Result as CheckResult, Source } from "@claimlens/shared";
 import VerdictBadge from "./components/VerdictBadge";
-import {labels} from "./verdicts";
-import {downloadJson} from "./storage.ts";
-import {t} from "./messages";
-type Props={result:CheckResult;onRecheck?:()=>void;onShare?:()=>Promise<void>;allowShare?:boolean;shared?:boolean};
-function SourceCard({source,index,cited}:{source:Source;index:number;cited:boolean}){
-  const date=source.published_at||"",published=Number.isFinite(Date.parse(date));
-  return <article className={`source-card ${cited?"source-cited":""}`}><a href={source.url} target="_blank" rel="noopener noreferrer"><div className="source-top"><span className="source-index">{String(index+1).padStart(2,"0")}</span><span className="source-publisher">{source.publisher}</span><ArrowUpRight size={16}/></div><h4>{source.title}</h4></a><p>{source.content.slice(0,180)}{source.content.length>180?"…":""}</p><div className="source-card-meta"><span className={`source-use ${cited?"cited":""}`}>{cited?"Cited evidence":"Retrieved source"}</span><span>{source.provider||"Tavily"}</span></div>{source.quality&&<><span className="source-quality" title={source.quality.explanation}>{source.quality.tier} · {Math.round(source.quality.score*100)}/100</span><p className="confidence-note">{source.quality.explanation}</p></>}<span className="source-date">{published?`Published ${new Date(date).toLocaleDateString()}`:"Publication date unavailable"}</span>{source.retrieved_at&&<span className="source-date">Retrieved {new Date(source.retrieved_at).toLocaleDateString()}</span>}</article>;
+import { labels } from "./verdicts";
+import { downloadJson } from "./storage.ts";
+import { t } from "./messages";
+type Props = {
+  result: CheckResult;
+  onRecheck?: () => void;
+  onShare?: () => Promise<void>;
+  allowShare?: boolean;
+  shared?: boolean;
+};
+function SourceCard({ source, index, cited }: { source: Source; index: number; cited: boolean }) {
+  const date = source.published_at || "",
+    published = Number.isFinite(Date.parse(date));
+  return (
+    <article className={`source-card ${cited ? "source-cited" : ""}`}>
+      <a href={source.url} target="_blank" rel="noopener noreferrer">
+        <div className="source-top">
+          <span className="source-index">{String(index + 1).padStart(2, "0")}</span>
+          <span className="source-publisher">{source.publisher}</span>
+          <ArrowUpRight size={16} />
+        </div>
+        <h4>{source.title}</h4>
+      </a>
+      <p>
+        {source.content.slice(0, 180)}
+        {source.content.length > 180 ? "…" : ""}
+      </p>
+      <div className="source-card-meta">
+        <span className={`source-use ${cited ? "cited" : ""}`}>
+          {cited ? "Cited evidence" : "Retrieved source"}
+        </span>
+        <span>{source.provider || "Tavily"}</span>
+      </div>
+      {source.quality && (
+        <>
+          <span className="source-quality" title={source.quality.explanation}>
+            {source.quality.tier} · {Math.round(source.quality.score * 100)}/100
+          </span>
+          <p className="confidence-note">{source.quality.explanation}</p>
+        </>
+      )}
+      <span className="source-date">
+        {published
+          ? `Published ${new Date(date).toLocaleDateString()}`
+          : "Publication date unavailable"}
+      </span>
+      {source.retrieved_at && (
+        <span className="source-date">
+          Retrieved {new Date(source.retrieved_at).toLocaleDateString()}
+        </span>
+      )}
+    </article>
+  );
 }
-export default function Result({result,onRecheck,onShare,allowShare=false,shared=false}:Props){
-  const titleRef=useRef<HTMLHeadingElement|null>(null);
-  useEffect(()=>{titleRef.current?.focus({preventScroll:true});},[result.id]);
-  const [copied,setCopied]=useState(false),[copyError,setCopyError]=useState("");
-  const {label,icon:Icon,detail}=labels[result.verdict];
-  const sources=[...new Map(result.claims.flatMap(claim=>claim.sources).map(source=>[source.url,source])).values()];
-  const single=result.claims.length===1;
-  const citedUrls=new Set(result.claims.flatMap(claim=>claim.evidence.flatMap(evidence=>{const source=claim.sources.find(item=>item.id===evidence.source_id);return source?[source.url]:[];})));
-  const cited=sources.filter(source=>citedUrls.has(source.url)),primary=cited.length?cited:sources.slice(0,2),additional=sources.filter(source=>!primary.includes(source));
-  async function copy(){const text=[result.input,`ClaimLens: ${label}`,...result.claims.map(claim=>`${labels[claim.verdict].label}: ${claim.claim}\n${claim.explanation}`),...sources.map(source=>source.url)].join("\n\n");try{await navigator.clipboard.writeText(text);setCopied(true);setCopyError("");}catch{setCopyError("Copy is unavailable in this browser. Download the report instead.");}}
-  return <article className="result-panel" aria-label="Fact-check result"><div className={`result-heading result-${result.verdict.toLowerCase()}`}><div className="result-symbol"><Icon size={28}/></div><div><span className="eyebrow">{shared?"SHARED READ-ONLY FINDING":"THE FINDING"}</span><h2 id="result-title" ref={titleRef} tabIndex={-1}>{label}</h2><p>{detail}</p></div></div>
-    <div className="checked-input"><span className="eyebrow">{result.input_type==="article"?"ARTICLE REVIEWED":"CLAIM CHECKED"}</span><p>{result.input}</p></div><p className="result-summary">{result.summary}</p>
-    {result.demo&&<p className="notice" role="status">{t("demo")}</p>}{result.warnings?.map((warning,index)=><p className="notice" role="status" key={index}>{warning}</p>)}
-    {result.cached&&<p className="cache-note">Cached finding · {Math.round((result.cache_age_ms||0)/1000)} seconds old. Re-check to retrieve fresh evidence.</p>}
-    <div className="result-meta"><span><Clock3 size={14}/>{new Date(result.checked_at).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})}</span><span><Link2 size={14}/>{cited.length} cited · {sources.length} retrieved</span><span>{(result.latency_ms/1000).toFixed(1)}s</span></div>
-    {result.input_type==="article"&&<p className="article-scope"><FileText size={16}/>This review covers the selected atomic claims, rather than every statement in the article.</p>}
-    <div className="claim-findings">{result.claims.map((claim,index)=><section className="claim-finding" key={index}>{!single&&<div className="claim-number">{String(index+1).padStart(2,"0")}</div>}<div className="claim-content"><div className="claim-top"><h3>{single?"Evidence for this finding":claim.claim}</h3>{!single&&<VerdictBadge verdict={claim.verdict}/>}</div>{(!single||claim.explanation.trim()!==result.summary.trim())&&<p>{claim.explanation}</p>}<span className="evidence-strength">{claim.evidence_strength}</span>
-      {claim.confidence!=null&&<div className="confidence-note"><strong>Model estimate: {Math.round(claim.confidence*100)}%</strong><p>{claim.confidence_explanation||"This is an uncalibrated model estimate, not a measured probability."}</p></div>}
-      {!claim.evidence.length&&<p className="evidence-empty">No cited excerpt established a supported or refuted finding.</p>}
-      {(["SUPPORTS","REFUTES","CONTEXT"] as const).map(stance=>{const items=claim.evidence.filter(item=>item.stance===stance);return items.length?<Fragment key={stance}><h4 className="evidence-group-label">{stance==="SUPPORTS"?"Supporting evidence":stance==="REFUTES"?"Refuting evidence":"Context"}</h4>{items.map((evidence,position)=>{const source=claim.sources.find(item=>item.id===evidence.source_id);return source?<blockquote className={`evidence-quote evidence-${stance.toLowerCase()}`} key={position}><p><mark className="quoted-text">“{evidence.quote}”</mark></p><footer><span className={`stance stance-${stance.toLowerCase()}`}>{stance==="SUPPORTS"?"Supports":stance==="REFUTES"?"Refutes":"Context"}</span><a href={source.url} target="_blank" rel="noopener noreferrer">{source.publisher}<ArrowUpRight size={13}/></a></footer></blockquote>:null;})}</Fragment>:null;})}
-    </div></section>)}</div>
-    {sources.length>0&&<section className="sources-section"><div className="section-title"><h3>{cited.length?"Cited sources":"Retrieved sources"}</h3><span>{cited.length?"Used in this finding":"Not enough evidence for a verdict"}</span></div><div className="source-grid">{primary.map((source,index)=><SourceCard key={source.url} source={source} index={index} cited={citedUrls.has(source.url)}/>)}</div>{additional.length>0&&<details className="sources-disclosure"><summary>Show {additional.length} additional retrieved {additional.length===1?"source":"sources"}<ChevronDown size={16}/></summary><p>These were retrieved and are not cited in the finding above.</p><div className="source-grid">{additional.map((source,index)=><SourceCard key={source.url} source={source} index={primary.length+index} cited={false}/>)}</div></details>}</section>}
-    {result.trace&&<details className="verification-trace"><summary>How this was verified</summary><ol>{result.trace.map((stage,index)=><li key={index}>{stage.stage}: {stage.detail} · {(stage.duration_ms/1000).toFixed(2)}s</li>)}</ol><p className="confidence-note">{result.model?`Analysis model: ${result.model}. `:""}Source reputation is an editorial signal. Only validated citations can support a finding; uncertainty and freshness rules can force abstention.</p></details>}
-    <div className="report-actions"><p>{t("uncertainty")}</p><button className="text-button" onClick={()=>{void copy();}}>{copied?<Check size={15}/>:<Copy size={15}/>} {copied?"Copied":"Copy summary"}</button><button className="text-button" onClick={()=>downloadJson(result,`claimlens-check-${result.id}.json`)}><Download size={15}/>Download</button>{!shared&&onRecheck&&<button className="text-button" onClick={onRecheck}><RefreshCw size={15}/>{t("retry")}</button>}{!shared&&onShare&&<button className="text-button" disabled={!allowShare} title={allowShare?"Re-verify and explicitly store a public read-only finding":"This server keeps findings local; download the report instead"} onClick={()=>{void onShare();}}><Share2 size={15}/>{t("share")}</button>}</div>{allowShare&&!shared&&<p className="confidence-note">Creating a link opts this finding into server storage. Anyone with the link can read it.</p>}{result.permalink&&<p className="notice"><a href={result.permalink}>Open read-only shared finding</a></p>}{copyError&&<p className="inline-error" role="alert">{copyError}</p>}
-  </article>;
+export default function Result({
+  result,
+  onRecheck,
+  onShare,
+  allowShare = false,
+  shared = false,
+}: Props) {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  useEffect(() => {
+    titleRef.current?.focus({ preventScroll: true });
+  }, [result.id]);
+  const [copied, setCopied] = useState(false),
+    [copyError, setCopyError] = useState("");
+  const { label, icon: Icon, detail } = labels[result.verdict];
+  const sources = [
+    ...new Map(
+      result.claims.flatMap((claim) => claim.sources).map((source) => [source.url, source]),
+    ).values(),
+  ];
+  const single = result.claims.length === 1;
+  const citedUrls = new Set(
+    result.claims.flatMap((claim) =>
+      claim.evidence.flatMap((evidence) => {
+        const source = claim.sources.find((item) => item.id === evidence.source_id);
+        return source ? [source.url] : [];
+      }),
+    ),
+  );
+  const cited = sources.filter((source) => citedUrls.has(source.url)),
+    primary = cited.length ? cited : sources.slice(0, 2),
+    additional = sources.filter((source) => !primary.includes(source));
+  async function copy() {
+    const text = [
+      result.input,
+      `ClaimLens: ${label}`,
+      ...result.claims.map(
+        (claim) => `${labels[claim.verdict].label}: ${claim.claim}\n${claim.explanation}`,
+      ),
+      ...sources.map((source) => source.url),
+    ].join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setCopyError("");
+    } catch {
+      setCopyError("Copy is unavailable in this browser. Download the report instead.");
+    }
+  }
+  return (
+    <article className="result-panel" aria-label="Fact-check result">
+      <div className={`result-heading result-${result.verdict.toLowerCase()}`}>
+        <div className="result-symbol">
+          <Icon size={28} />
+        </div>
+        <div>
+          <span className="eyebrow">{shared ? "SHARED READ-ONLY FINDING" : "THE FINDING"}</span>
+          <h2 id="result-title" ref={titleRef} tabIndex={-1}>
+            {label}
+          </h2>
+          <p>{detail}</p>
+        </div>
+      </div>
+      <div className="checked-input">
+        <span className="eyebrow">
+          {result.input_type === "article" ? "ARTICLE REVIEWED" : "CLAIM CHECKED"}
+        </span>
+        <p>{result.input}</p>
+      </div>
+      <p className="result-summary">{result.summary}</p>
+      {result.demo && (
+        <p className="notice" role="status">
+          {t("demo")}
+        </p>
+      )}
+      {result.warnings?.map((warning, index) => (
+        <p className="notice" role="status" key={index}>
+          {warning}
+        </p>
+      ))}
+      {result.cached && (
+        <p className="cache-note">
+          Cached finding · {Math.round((result.cache_age_ms || 0) / 1000)} seconds old. Re-check to
+          retrieve fresh evidence.
+        </p>
+      )}
+      <div className="result-meta">
+        <span>
+          <Clock3 size={14} />
+          {new Date(result.checked_at).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
+        </span>
+        <span>
+          <Link2 size={14} />
+          {cited.length} cited · {sources.length} retrieved
+        </span>
+        <span>{(result.latency_ms / 1000).toFixed(1)}s</span>
+      </div>
+      {result.input_type === "article" && (
+        <p className="article-scope">
+          <FileText size={16} />
+          This review covers the selected atomic claims, rather than every statement in the article.
+        </p>
+      )}
+      <div className="claim-findings">
+        {result.claims.map((claim, index) => (
+          <section className="claim-finding" key={index}>
+            {!single && <div className="claim-number">{String(index + 1).padStart(2, "0")}</div>}
+            <div className="claim-content">
+              <div className="claim-top">
+                <h3>{single ? "Evidence for this finding" : claim.claim}</h3>
+                {!single && <VerdictBadge verdict={claim.verdict} />}
+              </div>
+              {(!single || claim.explanation.trim() !== result.summary.trim()) && (
+                <p>{claim.explanation}</p>
+              )}
+              <span className="evidence-strength">{claim.evidence_strength}</span>
+              {claim.confidence != null && (
+                <div className="confidence-note">
+                  <strong>Model estimate: {Math.round(claim.confidence * 100)}%</strong>
+                  <p>
+                    {claim.confidence_explanation ||
+                      "This is an uncalibrated model estimate, not a measured probability."}
+                  </p>
+                </div>
+              )}
+              {!claim.evidence.length && (
+                <p className="evidence-empty">
+                  No cited excerpt established a supported or refuted finding.
+                </p>
+              )}
+              {(["SUPPORTS", "REFUTES", "CONTEXT"] as const).map((stance) => {
+                const items = claim.evidence.filter((item) => item.stance === stance);
+                return items.length ? (
+                  <Fragment key={stance}>
+                    <h4 className="evidence-group-label">
+                      {stance === "SUPPORTS"
+                        ? "Supporting evidence"
+                        : stance === "REFUTES"
+                          ? "Refuting evidence"
+                          : "Context"}
+                    </h4>
+                    {items.map((evidence, position) => {
+                      const source = claim.sources.find((item) => item.id === evidence.source_id);
+                      return source ? (
+                        <blockquote
+                          className={`evidence-quote evidence-${stance.toLowerCase()}`}
+                          key={position}
+                        >
+                          <p>
+                            <mark className="quoted-text">“{evidence.quote}”</mark>
+                          </p>
+                          <footer>
+                            <span className={`stance stance-${stance.toLowerCase()}`}>
+                              {stance === "SUPPORTS"
+                                ? "Supports"
+                                : stance === "REFUTES"
+                                  ? "Refutes"
+                                  : "Context"}
+                            </span>
+                            <a href={source.url} target="_blank" rel="noopener noreferrer">
+                              {source.publisher}
+                              <ArrowUpRight size={13} />
+                            </a>
+                          </footer>
+                        </blockquote>
+                      ) : null;
+                    })}
+                  </Fragment>
+                ) : null;
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+      {sources.length > 0 && (
+        <section className="sources-section">
+          <div className="section-title">
+            <h3>{cited.length ? "Cited sources" : "Retrieved sources"}</h3>
+            <span>
+              {cited.length ? "Used in this finding" : "Not enough evidence for a verdict"}
+            </span>
+          </div>
+          <div className="source-grid">
+            {primary.map((source, index) => (
+              <SourceCard
+                key={source.url}
+                source={source}
+                index={index}
+                cited={citedUrls.has(source.url)}
+              />
+            ))}
+          </div>
+          {additional.length > 0 && (
+            <details className="sources-disclosure">
+              <summary>
+                Show {additional.length} additional retrieved{" "}
+                {additional.length === 1 ? "source" : "sources"}
+                <ChevronDown size={16} />
+              </summary>
+              <p>These were retrieved and are not cited in the finding above.</p>
+              <div className="source-grid">
+                {additional.map((source, index) => (
+                  <SourceCard
+                    key={source.url}
+                    source={source}
+                    index={primary.length + index}
+                    cited={false}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+        </section>
+      )}
+      {result.trace && (
+        <details className="verification-trace">
+          <summary>How this was verified</summary>
+          <ol>
+            {result.trace.map((stage, index) => (
+              <li key={index}>
+                {stage.stage}: {stage.detail} · {(stage.duration_ms / 1000).toFixed(2)}s
+              </li>
+            ))}
+          </ol>
+          <p className="confidence-note">
+            {result.model ? `Analysis model: ${result.model}. ` : ""}Source reputation is an
+            editorial signal. Only validated citations can support a finding; uncertainty and
+            freshness rules can force abstention.
+          </p>
+        </details>
+      )}
+      <div className="report-actions">
+        <p>{t("uncertainty")}</p>
+        <button
+          className="text-button"
+          onClick={() => {
+            void copy();
+          }}
+        >
+          {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "Copied" : "Copy summary"}
+        </button>
+        <button
+          className="text-button"
+          onClick={() => downloadJson(result, `claimlens-check-${result.id}.json`)}
+        >
+          <Download size={15} />
+          Download
+        </button>
+        {!shared && onRecheck && (
+          <button className="text-button" onClick={onRecheck}>
+            <RefreshCw size={15} />
+            {t("retry")}
+          </button>
+        )}
+        {!shared && onShare && (
+          <button
+            className="text-button"
+            disabled={!allowShare}
+            title={
+              allowShare
+                ? "Re-verify and explicitly store a public read-only finding"
+                : "This server keeps findings local; download the report instead"
+            }
+            onClick={() => {
+              void onShare();
+            }}
+          >
+            <Share2 size={15} />
+            {t("share")}
+          </button>
+        )}
+      </div>
+      {allowShare && !shared && (
+        <p className="confidence-note">
+          Creating a link opts this finding into server storage. Anyone with the link can read it.
+        </p>
+      )}
+      {result.permalink && (
+        <p className="notice">
+          <a href={result.permalink}>Open read-only shared finding</a>
+        </p>
+      )}
+      {copyError && (
+        <p className="inline-error" role="alert">
+          {copyError}
+        </p>
+      )}
+    </article>
+  );
 }

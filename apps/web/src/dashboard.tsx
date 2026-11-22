@@ -248,7 +248,6 @@ export default function Dashboard({
     document.title = `${view === "check" ? (result ? labels[result.verdict].label : "Check a claim") : view === "history" ? "History" : view === "stats" ? "Activity" : "Settings"} — Verity`;
   }, [view, result]);
   const isArticle = /^https?:\/\//i.test(claim.trim());
-  const checkShortcut = /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘ ↵" : "Ctrl ↵";
   const status = health.test_mode
     ? "Demo preview"
     : ready
@@ -475,12 +474,6 @@ export default function Dashboard({
                                     ? t("chooseClaims")
                                     : t("check")}
                               </span>
-                              {!loading && (
-                                <kbd className="button-shortcut" aria-hidden="true">
-                                  {checkShortcut}
-                                </kbd>
-                              )}
-                              {!loading && <ArrowRight size={18} />}
                             </button>
                           </div>
                         </div>

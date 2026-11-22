@@ -173,9 +173,6 @@ body {
   width: auto;
   flex-shrink: 0;
 }
-.composer-controls .button-shortcut {
-  display: inline-flex;
-}
 .has-finding .desk-intro {
   margin-bottom: 24px;
 }
@@ -251,14 +248,6 @@ body {
   background: var(--color-accent);
   color: var(--button-ink);
   border-color: transparent;
-}
-.button-shortcut {
-  font: inherit;
-  font-size: var(--type-caption);
-  border-left: 1px solid currentColor;
-  padding-left: var(--space-2);
-  opacity: 0.8;
-  white-space: nowrap;
 }
 .secondary-button,
 .history-toolbar > .text-button,

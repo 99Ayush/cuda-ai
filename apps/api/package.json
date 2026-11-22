@@ -17,7 +17,7 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.2.1",
     "@mozilla/readability": "^0.6.0",
-    "jsdom": "^31.0.1",
+    "jsdom": "^26.1.0",
     "tldts": "^7.5.5",
     "pg": "^8.23.1",
     "@verity/shared": "*"

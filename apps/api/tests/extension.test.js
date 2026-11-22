@@ -24,7 +24,9 @@ function storageArea(initial = {}) {
       return Object.fromEntries(list.filter((key) => key in data).map((key) => [key, data[key]]));
     },
     set: async (values) => void Object.assign(data, values),
-    remove: async (key) => void delete data[key],
+    remove: async (keys) => {
+      for (const key of Array.isArray(keys) ? keys : [keys]) delete data[key];
+    },
   };
 }
 
@@ -39,6 +41,7 @@ function panelChrome(options = {}) {
     version: "3.0.0",
   };
   return {
+    windows: { getCurrent: async () => ({ id: options.windowId || 7 }) },
     local,
     session,
     changes,
@@ -136,16 +139,20 @@ test("extension manifest is a valid MV3 package aligned with the release version
     assert.ok(manifest.permissions.includes(permission), `missing ${permission}`);
   for (const file of ["panel.html", "panel.js", "background.js", "bridge.js", "panel.css"])
     assert.ok(fs.existsSync(path.join(extDir, file)), `missing ${file}`);
+  for (const [size, file] of Object.entries(manifest.icons)) {
+    const icon = fs.readFileSync(path.join(extDir, file));
+    assert.equal(icon.readUInt32BE(16), Number(size));
+    assert.equal(icon.readUInt32BE(20), Number(size));
+  }
 });
 
-test("panel loads background status and disables controls when checking is paused", async () => {
-  const chrome = panelChrome({ enabled: false });
-  const dom = await loadPanel(chrome);
+test("panel removes preferences and old paused state cannot block screen search", async () => {
+  const dom = await loadPanel(panelChrome({ enabled: false }));
   const doc = dom.window.document;
-  assert.equal(doc.getElementById("enabled").checked, false);
-  assert.equal(doc.getElementById("api-url").value, "http://localhost:8080");
-  assert.equal(doc.getElementById("capture").disabled, true);
-  assert.equal(doc.getElementById("verify").disabled, true);
+  for (const id of ["settings", "enabled", "api-url", "read"])
+    assert.equal(doc.getElementById(id), null);
+  assert.equal(doc.getElementById("capture").disabled, false);
+  assert.equal(doc.getElementById("capture").textContent, "Search on screen");
   dom.window.close();
 });
 
@@ -189,55 +196,69 @@ test("panel verifies a claim, renders grounded evidence and stores a bounded his
   dom.window.close();
 });
 
-test("panel connection form rejects unsafe URLs and saves allowed localhost origins", async () => {
-  const chrome = panelChrome({ permissionHeld: false, permissionGranted: true });
-  const dom = await loadPanel(chrome);
-  const doc = dom.window.document;
-  doc.getElementById("api-url").value = "http://evil.example";
-  fire(dom, doc.getElementById("api-form"), "submit");
-  for (let i = 0; i < 6; i++) await tick();
-  assert.match(doc.getElementById("error").textContent, /HTTPS service origin or localhost/);
-  assert.equal(
-    chrome.sent.some((message) => message.type === "connect"),
-    false,
-  );
-
-  doc.getElementById("api-url").value = "http://localhost:18089";
-  fire(dom, doc.getElementById("api-form"), "submit");
-  for (let i = 0; i < 6; i++) await tick();
-  assert.equal(chrome.sent.at(-1).apiUrl, "http://localhost:18089");
-  assert.match(doc.getElementById("status").textContent, /Connection saved/);
-  assert.equal(doc.getElementById("api-url").value, "http://localhost:18089");
+test("one screen-search click reads the crop, fills the claim and verifies automatically", async () => {
+  const chrome = panelChrome({
+    sendMessage: async (message) =>
+      message.type === "get-status"
+        ? { ok: true, data: { apiUrl: "http://localhost:18089", enabled: false } }
+        : { ok: true, data: { image: "data:image/jpeg;base64,cropped" } },
+  });
+  const calls = [];
+  const dom = await loadPanel(chrome, async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return jsonResponse(
+      url.endsWith("extract-screen")
+        ? { claims: ["Lightning often strikes the same place repeatedly."] }
+        : fixtureResult(),
+    );
+  });
+  fire(dom, dom.window.document.getElementById("capture"));
+  fire(dom, dom.window.document.getElementById("capture"));
+  for (let i = 0; i < 16; i++) await tick();
+  assert.equal(chrome.sent.filter((message) => message.type === "capture-region").length, 1);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].body.image, "data:image/jpeg;base64,cropped");
+  assert.equal(calls[1].body.text, "Lightning often strikes the same place repeatedly.");
+  assert.equal(dom.window.document.getElementById("claim").value, calls[1].body.text);
+  assert.equal(dom.window.document.getElementById("result").hidden, false);
+  assert.equal(chrome.local.data.history.length, 1);
+  assert.equal(dom.window.document.getElementById("capture").disabled, false);
   dom.window.close();
 });
 
-test("panel switch toggles background state and storage changes re-sync the UI", async () => {
-  const chrome = panelChrome();
+test("cancelled selection makes no OCR or verification request", async () => {
+  const chrome = panelChrome({
+    sendMessage: async (message) =>
+      message.type === "get-status"
+        ? { ok: true, data: { apiUrl: "http://localhost:8080" } }
+        : { ok: true, data: { cancelled: true } },
+  });
   const dom = await loadPanel(chrome);
-  const doc = dom.window.document;
-  doc.getElementById("enabled").checked = false;
-  fire(dom, doc.getElementById("enabled"), "change");
-  for (let i = 0; i < 6; i++) await tick();
-  const switchMessage = chrome.sent.find((message) => message.type === "set-enabled");
-  assert.equal(switchMessage.type, "set-enabled");
-  assert.equal(switchMessage.enabled, false);
-  assert.equal(doc.getElementById("capture").disabled, true);
-
-  for (const listener of chrome.changes) listener({ enabled: { newValue: true } }, "local");
-  assert.equal(doc.getElementById("enabled").checked, true);
-  assert.equal(doc.getElementById("capture").disabled, false);
+  fire(dom, dom.window.document.getElementById("capture"));
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(dom.window.document.getElementById("preview").hidden, true);
+  assert.equal(dom.window.document.getElementById("error").hidden, true);
+  assert.equal(dom.window.document.getElementById("capture").disabled, false);
   dom.window.close();
 });
 
-test("panel clears extension-local history", async () => {
-  const chrome = panelChrome({ local: { history: [fixtureResult()] } });
-  const dom = await loadPanel(chrome);
-  const doc = dom.window.document;
-  assert.equal(doc.getElementById("result").hidden, false);
-  fire(dom, doc.getElementById("clear-history"), "click");
-  for (let i = 0; i < 4; i++) await tick();
-  assert.equal("history" in chrome.local.data, false);
-  assert.equal(doc.getElementById("result").hidden, true);
+test("unreadable crop shows a friendly error and never starts a fact check", async () => {
+  const chrome = panelChrome({
+    sendMessage: async (message) =>
+      message.type === "get-status"
+        ? { ok: true, data: { apiUrl: "http://localhost:8080" } }
+        : { ok: true, data: { image: "data:image/jpeg;base64,cropped" } },
+  });
+  const calls = [];
+  const dom = await loadPanel(chrome, async (url) => {
+    calls.push(url);
+    return jsonResponse({ claims: [] });
+  });
+  fire(dom, dom.window.document.getElementById("capture"));
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(calls.length, 1);
+  assert.match(dom.window.document.getElementById("error").textContent, /No legible factual claim/);
+  assert.equal(dom.window.document.getElementById("capture").disabled, false);
   dom.window.close();
 });
 
@@ -268,6 +289,7 @@ function loadBackground(chrome, extras = {}) {
     DOMException,
     console,
     // The injected selection function runs in the page, not the worker; emulate that realm.
+    document: { activeElement: null },
     window: { getSelection: () => ({ toString: () => "x".repeat(2100) }) },
     ...extras,
   };
@@ -346,19 +368,12 @@ test("background connection validates origin, credentials and path", async () =>
   assert.equal(chrome.local.data.apiUrl, "http://localhost:18089");
 });
 
-test("background blocks capture while paused and returns bounded capture/selection data", async () => {
+test("background allows explicit capture after the removed switch was previously disabled", async () => {
   const chrome = backgroundChrome({ enabled: false });
-  let { listeners } = loadBackground(chrome);
-  const paused = await dispatch(listeners, { type: "capture" }, extensionSender());
-  assert.equal(paused.ok, false);
-  assert.match(paused.error, /Screen checking is paused/);
-
-  const activeChrome = backgroundChrome();
-  ({ listeners } = loadBackground(activeChrome));
+  const { listeners } = loadBackground(chrome);
   const capture = await dispatch(listeners, { type: "capture" }, extensionSender());
   assert.equal(capture.ok, true);
   assert.equal(capture.data.image, "data:image/jpeg;base64,AAAA");
-
   const selection = await dispatch(listeners, { type: "selection" }, extensionSender());
   assert.equal(selection.data.text.length, 2000);
 });
@@ -432,5 +447,383 @@ test("bridge reports transport errors with the original request id", async () =>
   assert.equal(posted[0].id, "failed");
   assert.equal(posted[0].ok, false);
   assert.match(posted[0].error, /Reload this page/);
+  dom.window.close();
+});
+
+test("native crop applies display scaling and only encodes the selected rectangle", async () => {
+  const draws = [];
+  let closed = false;
+  class Canvas {
+    constructor(width, height) {
+      this.width = width;
+      this.height = height;
+    }
+    getContext() {
+      return { drawImage: (...args) => draws.push(args) };
+    }
+    async convertToBlob() {
+      return new Blob([new Uint8Array([255, 216, 255, 1, 2])], { type: "image/jpeg" });
+    }
+  }
+  const { sandbox } = loadBackground(backgroundChrome(), {
+    atob,
+    btoa,
+    Blob,
+    Uint8Array,
+    OffscreenCanvas: Canvas,
+    createImageBitmap: async () => ({ width: 2400, height: 1600, close: () => (closed = true) }),
+  });
+  const image = await sandbox.cropScreen("data:image/png;base64,AAAA", {
+    x: 100,
+    y: 200,
+    width: 300,
+    height: 100,
+    viewportWidth: 1200,
+    viewportHeight: 800,
+  });
+  assert.equal(image, "data:image/jpeg;base64,/9j/AQI=");
+  assert.deepEqual(draws[0].slice(1), [200, 400, 600, 200, 0, 0, 600, 200]);
+  assert.equal(closed, true);
+  await assert.rejects(
+    () =>
+      sandbox.cropScreen("data:image/png;base64,AAAA", {
+        x: -1,
+        y: 0,
+        width: 300,
+        height: 100,
+        viewportWidth: 1200,
+        viewportHeight: 800,
+      }),
+    /invalid/,
+  );
+});
+
+test("panel forwards its own browser window for capture", async () => {
+  const chrome = panelChrome({ windowId: 42 });
+  const dom = await loadPanel(chrome);
+  fire(dom, dom.window.document.getElementById("capture"));
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(chrome.sent.find((message) => message.type === "capture-region").windowId, 42);
+  dom.window.close();
+});
+
+test("selected text starts verification and clears a stale result on failure", async () => {
+  let fail = false;
+  const chrome = panelChrome({
+    sendMessage: async (message) =>
+      message.type === "get-status"
+        ? { ok: true, data: { apiUrl: "http://localhost:8080" } }
+        : fail
+          ? { ok: false, error: "Click the Verity icon in this window’s toolbar." }
+          : { ok: true, data: { text: "  Lightning often strikes the same place repeatedly.  " } },
+  });
+  const calls = [];
+  const dom = await loadPanel(chrome, async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return jsonResponse(fixtureResult());
+  });
+  fire(dom, dom.window.document.getElementById("selection"));
+  for (let i = 0; i < 12; i++) await tick();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].body.text, "Lightning often strikes the same place repeatedly.");
+  assert.equal(dom.window.document.getElementById("result").hidden, false);
+  fail = true;
+  fire(dom, dom.window.document.getElementById("selection"));
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(dom.window.document.getElementById("result").hidden, true);
+  assert.match(dom.window.document.getElementById("error").textContent, /toolbar/);
+  assert.equal(dom.window.document.getElementById("selection").disabled, false);
+  dom.window.close();
+});
+
+test("background targets the panel window even when another window is focused", async () => {
+  const chrome = backgroundChrome();
+  const queries = [];
+  chrome.tabs.query = async (query) => {
+    queries.push(query);
+    return [{ id: 23, windowId: 42, url: "https://example.org" }];
+  };
+  const { listeners } = loadBackground(chrome);
+  const reply = await dispatch(listeners, { type: "capture", windowId: 42 }, extensionSender());
+  assert.equal(reply.ok, true);
+  assert.equal(queries[0].windowId, 42);
+  assert.equal(queries[0].currentWindow, undefined);
+});
+
+test("missing activeTab access explains the toolbar action instead of a protected page", async () => {
+  const chrome = backgroundChrome();
+  chrome.scripting.executeScript = async () => {
+    throw new Error("Cannot access contents of url. Extension manifest must request permission.");
+  };
+  const { listeners } = loadBackground(chrome);
+  const selection = await dispatch(listeners, { type: "selection" }, extensionSender());
+  assert.equal(selection.ok, false);
+  assert.match(selection.error, /Click the Verity icon.*toolbar/);
+  chrome.tabs.captureVisibleTab = async () => {
+    throw new Error("Either the '<all_urls>' or 'activeTab' permission is required.");
+  };
+  const capture = await dispatch(listeners, { type: "capture" }, extensionSender());
+  assert.match(capture.error, /Opening a new site/);
+});
+
+test("restricted browser pages and extension stores are rejected before injection", async () => {
+  for (const url of [
+    "chrome://newtab",
+    "edge://settings",
+    "https://chromewebstore.google.com/detail/test",
+    "https://microsoftedge.microsoft.com/addons/detail/test",
+  ]) {
+    const chrome = backgroundChrome();
+    chrome.tabs.query = async () => [{ id: 7, windowId: 7, url }];
+    chrome.scripting.executeScript = async () => {
+      throw new Error("must not inject");
+    };
+    const { listeners } = loadBackground(chrome);
+    const reply = await dispatch(listeners, { type: "selection" }, extensionSender());
+    assert.match(reply.error, /protected pages/);
+  }
+});
+
+test("text selection includes editable controls and frames, excluding password values", async () => {
+  const { sandbox } = loadBackground(backgroundChrome());
+  sandbox.document.activeElement = {
+    tagName: "TEXTAREA",
+    value: "before selected claim after",
+    selectionStart: 7,
+    selectionEnd: 21,
+  };
+  assert.equal(sandbox.readSelectedText(), "selected claim");
+  sandbox.document.activeElement = {
+    tagName: "INPUT",
+    type: "password",
+    value: "secret",
+    selectionStart: 0,
+    selectionEnd: 6,
+  };
+  sandbox.window.getSelection = () => ({ toString: () => "" });
+  assert.equal(sandbox.readSelectedText(), "");
+  sandbox.document.activeElement = { tagName: "IFRAME" };
+  sandbox.window.getSelection = () => ({ toString: () => "An older parent selection" });
+  assert.equal(sandbox.readSelectedText(), "");
+  const chrome = backgroundChrome();
+  let target;
+  chrome.scripting.executeScript = async (options) => {
+    target = options.target;
+    return [
+      { frameId: 0, result: "" },
+      { frameId: 12, result: "A claim inside an accessible frame." },
+    ];
+  };
+  const { listeners } = loadBackground(chrome);
+  const reply = await dispatch(listeners, { type: "selection" }, extensionSender());
+  assert.equal(target.allFrames, true);
+  assert.equal(reply.data.text, "A claim inside an accessible frame.");
+});
+
+test("a tab changed during region selection is never captured", async () => {
+  const chrome = backgroundChrome();
+  let queries = 0;
+  chrome.tabs.query = async () => [
+    { id: ++queries === 1 ? 7 : 8, windowId: 7, url: "https://example.org/article" },
+  ];
+  chrome.scripting.executeScript = async () => [
+    { result: { x: 0, y: 0, width: 30, height: 30, viewportWidth: 100, viewportHeight: 100 } },
+  ];
+  chrome.tabs.captureVisibleTab = async () => {
+    throw new Error("must not capture");
+  };
+  const { listeners } = loadBackground(chrome);
+  const reply = await dispatch(listeners, { type: "capture-region" }, extensionSender());
+  assert.match(reply.error, /active page changed/);
+});
+
+test("only one region selector runs per page and cancellation releases the lock", async () => {
+  const chrome = backgroundChrome();
+  let resolveSelection;
+  let injections = 0;
+  chrome.scripting.executeScript = () => {
+    injections++;
+    return new Promise((resolve) => {
+      resolveSelection = resolve;
+    });
+  };
+  const { listeners } = loadBackground(chrome);
+  let firstReply;
+  listeners.message({ type: "capture-region" }, extensionSender(), (reply) => {
+    firstReply = reply;
+  });
+  await tick();
+  const duplicate = await dispatch(listeners, { type: "capture-region" }, extensionSender());
+  assert.match(duplicate.error, /Finish or cancel/);
+  assert.equal(injections, 1);
+  resolveSelection([{ result: { cancelled: true } }]);
+  await tick();
+  assert.equal(firstReply.data.cancelled, true);
+  chrome.scripting.executeScript = async () => [{ result: { cancelled: true } }];
+  const retry = await dispatch(listeners, { type: "capture-region" }, extensionSender());
+  assert.equal(retry.ok, true);
+});
+
+test("right-click selection verifies automatically only in its owning browser window", async () => {
+  const chrome = panelChrome({
+    windowId: 42,
+    session: {
+      selectedText: "Lightning often strikes the same place repeatedly.",
+      selectedWindowId: 7,
+    },
+  });
+  let calls = 0;
+  const dom = await loadPanel(chrome, async () => {
+    calls++;
+    return jsonResponse(fixtureResult());
+  });
+  assert.equal(calls, 0);
+  assert.equal(chrome.session.data.selectedWindowId, 7);
+  chrome.session.data.selectedWindowId = 42;
+  chrome.changes[0]({ selectedText: { newValue: chrome.session.data.selectedText } }, "session");
+  for (let i = 0; i < 12; i++) await tick();
+  assert.equal(calls, 1);
+  assert.equal(dom.window.document.getElementById("result").hidden, false);
+  assert.equal(chrome.session.data.selectedText, undefined);
+  dom.window.close();
+});
+
+test("history storage failure does not hide or misreport a completed check", async () => {
+  const chrome = panelChrome();
+  chrome.storage.local.set = async () => {
+    throw new Error("storage quota");
+  };
+  const dom = await loadPanel(chrome, async () => jsonResponse(fixtureResult()));
+  dom.window.document.getElementById("claim").value =
+    "Lightning often strikes the same place repeatedly.";
+  fire(dom, dom.window.document.getElementById("check-form"), "submit");
+  for (let i = 0; i < 12; i++) await tick();
+  assert.equal(dom.window.document.getElementById("result").hidden, false);
+  assert.match(dom.window.document.getElementById("error").textContent, /check completed.*save/);
+  dom.window.close();
+});
+
+test("crop text fills the field before OCR finishes and survives a vision failure", async () => {
+  const text = "Lightning often strikes the same place repeatedly.";
+  const chrome = panelChrome({
+    sendMessage: async (message) =>
+      message.type === "get-status"
+        ? { ok: true, data: { apiUrl: "http://localhost:8080" } }
+        : { ok: true, data: { text, image: "data:image/jpeg;base64,cropped" } },
+  });
+  let rejectOcr;
+  const calls = [];
+  const dom = await loadPanel(chrome, async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    if (url.endsWith("extract-screen"))
+      return new Promise((_, reject) => {
+        rejectOcr = reject;
+      });
+    return jsonResponse(fixtureResult());
+  });
+  fire(dom, dom.window.document.getElementById("capture"));
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(dom.window.document.getElementById("claim").value, text);
+  assert.equal(dom.window.document.getElementById("result").hidden, true);
+  rejectOcr(new Error("vision unavailable"));
+  for (let i = 0; i < 12; i++) await tick();
+  assert.equal(calls[1].body.text, text);
+  assert.equal(dom.window.document.getElementById("result").hidden, false);
+  dom.window.close();
+});
+
+test("readable cropped page text can be checked without screenshot permission", async () => {
+  const chrome = backgroundChrome();
+  chrome.scripting.executeScript = async () => [
+    {
+      result: {
+        x: 0,
+        y: 0,
+        width: 50,
+        height: 30,
+        viewportWidth: 100,
+        viewportHeight: 100,
+        text: "Lightning strikes repeatedly.",
+      },
+    },
+  ];
+  chrome.tabs.captureVisibleTab = async () => {
+    throw new Error("activeTab permission required");
+  };
+  const { listeners } = loadBackground(chrome);
+  const reply = await dispatch(listeners, { type: "capture-region" }, extensionSender());
+  assert.equal(reply.ok, true);
+  assert.equal(reply.data.text, "Lightning strikes repeatedly.");
+  assert.equal(reply.data.image, undefined);
+});
+
+test("both crop commands start neutral with neither button focused or pressed", async () => {
+  const dom = await loadPanel(panelChrome());
+  for (const id of ["capture", "selection"]) {
+    const button = dom.window.document.getElementById(id);
+    assert.ok(button.classList.contains("secondary"));
+    assert.equal(button.getAttribute("aria-pressed"), null);
+    assert.equal(button.getAttribute("aria-busy"), "false");
+    assert.notEqual(dom.window.document.activeElement, button);
+  }
+  dom.window.close();
+});
+
+test("crop release resolves even when browser animation frames never run", async () => {
+  const dom = new JSDOM(
+    '<!doctype html><body><p id="inside">The Sun is a planet.</p><p id="outside">Text outside the crop.</p></body>',
+    { pretendToBeVisual: true },
+  );
+  const win = dom.window;
+  Object.defineProperty(win.ShadowRoot.prototype, "adoptedStyleSheets", {
+    configurable: true,
+    set() {},
+  });
+  const attach = win.Element.prototype.attachShadow;
+  win.Element.prototype.attachShadow = function () {
+    return attach.call(this, { mode: "open" });
+  };
+  win.Element.prototype.setPointerCapture = () => {};
+  const rect = (node, start = 0, end = node.textContent.length) => {
+    const y = node.parentElement.id === "inside" ? 10 : 70;
+    return {
+      left: 10 + start,
+      right: 10 + end,
+      top: y,
+      bottom: y + 15,
+      width: end - start,
+      height: 15,
+    };
+  };
+  win.Range.prototype.getClientRects = function () {
+    return [rect(this.startContainer)];
+  };
+  win.Range.prototype.getBoundingClientRect = function () {
+    return rect(this.startContainer, this.startOffset, this.endOffset);
+  };
+  const { sandbox } = loadBackground(backgroundChrome(), {
+    window: win,
+    document: win.document,
+    HTMLElement: win.HTMLElement,
+    NodeFilter: win.NodeFilter,
+    innerWidth: 100,
+    innerHeight: 100,
+    getComputedStyle: () => ({ visibility: "visible", display: "block", opacity: "1" }),
+    CSSStyleSheet: class {
+      replaceSync() {}
+    },
+    setTimeout,
+    clearTimeout,
+    requestAnimationFrame: () => 0,
+  });
+  const pending = sandbox.selectScreenRegion();
+  const overlay = win.document
+    .getElementById("verity-screen-selector")
+    .shadowRoot.querySelector(".overlay");
+  overlay.dispatchEvent(new win.MouseEvent("pointerdown", { button: 0, clientX: 5, clientY: 5 }));
+  overlay.dispatchEvent(new win.MouseEvent("pointerup", { button: 0, clientX: 70, clientY: 35 }));
+  const region = await pending;
+  assert.equal(region.text, "The Sun is a planet.");
+  assert.equal(win.document.getElementById("verity-screen-selector"), null);
   dom.window.close();
 });

@@ -9,7 +9,7 @@ const tsPlugin = require("@typescript-eslint/eslint-plugin");
 module.exports = [
   { ignores: ["node_modules/**", "frontend/**"] },
   {
-    files: ["extension/*.js"],
+    files: ["extension/*.js", "apps/extension/*.js"],
     ...js.configs.recommended,
     languageOptions: { sourceType: "script", globals: { ...globals.browser, chrome: "readonly" } },
   },

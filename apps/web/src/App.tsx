@@ -19,6 +19,8 @@ import {
 import { apiRequest, streamCheck } from "./api.ts";
 import { readHistory, saveHistory, importHistory } from "./storage.ts";
 import Dashboard from "./Dashboard";
+import { ToastStack } from "./components/Polish";
+import { useToasts } from "./hooks/feedback";
 import type { View } from "./types";
 function incomingClaim(): string {
   try {
@@ -28,6 +30,7 @@ function incomingClaim(): string {
   }
 }
 export default function App() {
+  const { items: toasts, notify, dismiss } = useToasts();
   const [view, setView] = useState<View>("check"),
     [claim, updateClaim] = useState(incomingClaim),
     [history, setHistory] = useState<Result[]>(readHistory),
@@ -115,24 +118,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loading]);
   useEffect(() => () => controller.current?.abort(), []);
-  useEffect(() => {
-    if (!result || view !== "check") return;
-    const frame = requestAnimationFrame(() => {
-      resultRef.current
-        ?.querySelector<HTMLElement>("#result-title")
-        ?.focus({ preventScroll: true });
-      resultRef.current?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-        block: "start",
-      });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [result, view]);
-  function persist(next: Result[]) {
+  function persist(next: Result[], message = "Finding saved on this device") {
     historyRef.current = next;
     setHistory(next);
-    if (!saveHistory(next))
+    if (!saveHistory(next)) {
       setNotice("Browser storage is unavailable or full. Download your report to keep a copy.");
+      notify("Could not save locally. Download a copy instead.", "error");
+    } else notify(message);
   }
   async function execute(input: CheckInput) {
     if (checking.current) return;
@@ -260,10 +252,14 @@ export default function App() {
           ...imported,
           ...historyRef.current.filter((row) => !imported.some((item) => item.id === row.id)),
         ].slice(0, 50),
+        `Imported ${imported.length} ${imported.length === 1 ? "finding" : "findings"}`,
       );
-      setNotice(`Imported ${imported.length} validated findings.`);
+      setNotice("");
     } catch (failure) {
-      setNotice(failure instanceof Error ? failure.message : "This file could not be imported.");
+      const message =
+        failure instanceof Error ? failure.message : "This file could not be imported.";
+      setNotice(message);
+      notify(message, "error");
     }
   }
   const filtered = history.filter(
@@ -275,41 +271,44 @@ export default function App() {
         .includes(filter.trim().toLowerCase()),
   );
   return (
-    <Dashboard
-      {...{
-        view,
-        setView,
-        claim,
-        setClaim,
-        history,
-        result,
-        health,
-        loading,
-        elapsed,
-        error,
-        notice,
-        filter,
-        setFilter,
-        verdictFilter,
-        setVerdictFilter,
-        filtered,
-        controller,
-        resultRef,
-        fieldRef,
-        submit,
-        openResult,
-        persist,
-        setResult,
-        progress,
-        articleClaims,
-        selectedClaims,
-        setSelectedClaims,
-        preparedArticle: preparedUrl === claim.trim(),
-        onImport,
-        onRecheck,
-        onShare,
-        shared,
-      }}
-    />
+    <>
+      <Dashboard
+        {...{
+          view,
+          setView,
+          claim,
+          setClaim,
+          history,
+          result,
+          health,
+          loading,
+          elapsed,
+          error,
+          notice,
+          filter,
+          setFilter,
+          verdictFilter,
+          setVerdictFilter,
+          filtered,
+          controller,
+          resultRef,
+          fieldRef,
+          submit,
+          openResult,
+          persist,
+          setResult,
+          progress,
+          articleClaims,
+          selectedClaims,
+          setSelectedClaims,
+          preparedArticle: preparedUrl === claim.trim(),
+          onImport,
+          onRecheck,
+          onShare,
+          shared,
+        }}
+      />
+      <ToastStack items={toasts} dismiss={dismiss} />
+    </>
   );
 }

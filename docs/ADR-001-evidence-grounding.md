@@ -4,7 +4,7 @@
 
 ## Context
 
-ClaimLens emits verdicts about real-world claims. A naive implementation can look convincing while failing in three ways: the model invents quotes, it treats a single low-quality page as proof, or it answers subjective and future claims as if they were empirically verifiable. Any of these would make the product worse than useless: users would trust a confident but ungrounded verdict.
+Verity emits verdicts about real-world claims. A naive implementation can look convincing while failing in three ways: the model invents quotes, it treats a single low-quality page as proof, or it answers subjective and future claims as if they were empirically verifiable. Any of these would make the product worse than useless: users would trust a confident but ungrounded verdict.
 
 We needed a pipeline where the language model proposes an analysis, but the server decides whether that analysis is admissible.
 

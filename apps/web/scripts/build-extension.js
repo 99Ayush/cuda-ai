@@ -53,14 +53,19 @@ function zip(entries) {
 function build() {
   const names = fs
     .readdirSync(source)
-    .filter((name) => /\.(js|json|html|css|md)$/.test(name))
+    .filter((name) => /\.(js|json|html|css|md|png|woff2|txt)$/.test(name))
     .sort();
   const entries = names.map((name) => [name, fs.readFileSync(path.join(source, name))]);
-  const target = path.join(publicDir, "claimlens-extension");
+  const target = path.join(publicDir, "verity-extension");
   fs.mkdirSync(target, { recursive: true });
   for (const [name, data] of entries) fs.writeFileSync(path.join(target, name), data);
+  fs.writeFileSync(path.join(publicDir, "verity-extension.zip"), zip(entries));
+  // Keep existing unpacked installations and old download links up to date.
+  const legacy = path.join(publicDir, "claimlens-extension");
+  fs.mkdirSync(legacy, { recursive: true });
+  for (const [name, data] of entries) fs.writeFileSync(path.join(legacy, name), data);
   fs.writeFileSync(path.join(publicDir, "claimlens-extension.zip"), zip(entries));
-  console.log(`Packaged ClaimLens extension (${entries.length} files).`);
+  console.log(`Packaged Verity extension (${entries.length} files).`);
 }
 if (require.main === module) build();
 module.exports = { zip, crc32, build };

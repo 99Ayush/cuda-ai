@@ -1,7 +1,6 @@
 import type { Dispatch, SetStateAction, RefObject, FormEvent } from "react";
 import type { Result, Health, ProgressEvent, Verdict } from "@claimlens/shared";
 export type View = "check" | "history" | "stats" | "settings";
-export type DialogKind = "mesh" | "dev" | "lock";
 export type DashboardProps = {
   view: View;
   setView: Dispatch<SetStateAction<View>>;
@@ -24,7 +23,7 @@ export type DashboardProps = {
   fieldRef: RefObject<HTMLTextAreaElement | null>;
   submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   openResult: (row: Result) => void;
-  persist: (rows: Result[]) => void;
+  persist: (rows: Result[], message?: string) => void;
   setResult: Dispatch<SetStateAction<Result | null>>;
   progress: ProgressEvent | null;
   articleClaims: string[];

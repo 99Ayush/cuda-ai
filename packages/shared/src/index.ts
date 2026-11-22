@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Stable public identity for the shipped Chrome/Edge extension. */
+export const VERITY_EXTENSION_ID = "bnhmjhknfbmlgcfoilflopfbihedeein";
+
 /** Single source of truth for the API version reported by health and OpenAPI. */
 export const APP_VERSION = "3.0.0";
 
@@ -174,9 +177,10 @@ export const HealthSchema = z.object({
   configured: z
     .object({
       evidence: z.boolean(),
+      tavily: z.boolean().optional(),
       analysis: z.boolean(),
-      google: z.boolean().optional(),
-      google_mode: z.string().optional(),
+      pubmed: z.boolean().optional(),
+      wikidata: z.boolean().optional(),
     })
     .optional(),
   test_mode: z.boolean().optional(),

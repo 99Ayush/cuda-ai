@@ -42,3 +42,6 @@ eval/results/
 # Generated installable extension assets
 apps/web/public/claimlens-extension/
 apps/web/public/claimlens-extension.zip
+apps/web/public/verity-extension/
+apps/web/public/verity-extension.zip
+.env.local

@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 let image = null;
 let busy = false;
 let apiUrl = "http://localhost:8080";
-let enabled = true;
+let panelWindowId;
 const labels = {
   TRUE: "Supported",
   FALSE: "Refuted",
@@ -10,7 +10,11 @@ const labels = {
   UNVERIFIED: "Unverified",
 };
 async function message(type, data = {}) {
-  const reply = await chrome.runtime.sendMessage({ type, ...data });
+  if (["capture", "capture-region", "selection"].includes(type)) {
+    const current = await chrome.windows.getCurrent();
+    panelWindowId = current.id;
+  }
+  const reply = await chrome.runtime.sendMessage({ type, ...data, windowId: panelWindowId });
   if (!reply?.ok)
     throw new Error(reply?.error || "The extension did not respond. Reopen its panel.");
   return reply.data;
@@ -20,11 +24,10 @@ function error(value = "") {
   $("error").hidden = !value;
 }
 function updateButtons() {
-  for (const id of ["capture", "selection", "read", "verify"]) $(id).disabled = busy || !enabled;
+  for (const id of ["capture", "selection", "verify", "discard"]) $(id).disabled = busy;
+  for (const button of $("choices").querySelectorAll("button")) button.disabled = busy;
+  for (const id of ["capture", "selection"]) $(id).setAttribute("aria-busy", String(busy));
   $("claim").disabled = busy;
-  $("api-url").disabled = busy;
-  $("enabled").disabled = busy;
-  $("discard").disabled = busy;
 }
 async function run(text, action) {
   if (busy) return;
@@ -32,6 +35,7 @@ async function run(text, action) {
   updateButtons();
   error();
   $("status").textContent = text;
+  $("result").hidden = true;
   try {
     await action();
     $("status").textContent = "";
@@ -41,6 +45,7 @@ async function run(text, action) {
   } finally {
     busy = false;
     updateButtons();
+    void consumeSelectedText().catch((failure) => error(failure.message));
   }
 }
 async function request(route, body) {
@@ -56,12 +61,12 @@ async function request(route, body) {
     throw new Error(
       failure.name === "TimeoutError"
         ? "This check timed out. Please try again."
-        : "Cannot reach the fact-checking service. Check the URL in Settings and keep the local backend running.",
+        : "Cannot reach the fact-checking service. Keep the local backend running, then try again.",
       { cause: failure },
     );
   }
   if (!response.headers.get("content-type")?.includes("application/json"))
-    throw new Error("This URL did not return the ClaimLens API. Check Settings.");
+    throw new Error("The connected service did not return the Verity API.");
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "The check could not be completed.");
   return data;
@@ -75,12 +80,56 @@ $("claim").addEventListener(
   () => ($("count").textContent = `${$("claim").value.length} / 2000`),
 );
 $("capture").addEventListener("click", () =>
-  run("Capturing the visible web page…", async () => {
-    const data = await message("capture");
-    image = data.image;
-    $("screenshot").src = image;
-    $("preview").hidden = false;
+  run("Drag over a claim on the page. Release to search.", async () => {
+    const data = await message("capture-region");
+    if (data.cancelled) return;
+    const visibleText = typeof data.text === "string" ? data.text.trim().slice(0, 2000) : "";
+    if (visibleText) setClaim(visibleText);
+    image = data.image || null;
+    if (image) $("screenshot").src = image;
+    else $("screenshot").removeAttribute("src");
+    $("preview").hidden = !image;
     $("choices").replaceChildren();
+    $("result").hidden = true;
+    $("status").textContent = "Reading the selected area…";
+    let extracted;
+    if (image) {
+      try {
+        extracted = await request("extract-screen", { image });
+      } catch (failure) {
+        if (visibleText.length < 8) throw failure;
+        extracted = { claims: [visibleText] };
+      }
+    } else extracted = { claims: visibleText ? [visibleText] : [] };
+    const claims = Array.isArray(extracted.claims)
+      ? [
+          ...new Set(
+            extracted.claims.filter(
+              (claim) =>
+                typeof claim === "string" && claim.trim().length >= 8 && claim.length <= 2000,
+            ),
+          ),
+        ].slice(0, 3)
+      : [];
+    if (!claims.length && visibleText.length >= 8) claims.push(visibleText);
+    if (!claims.length)
+      throw new Error("No legible factual claim was found. Select a clearer area and try again.");
+    setClaim(claims[0]);
+    if (claims.length > 1) {
+      $("choices").append(
+        element("p", "Found several claims. Checking the first; select another to check it."),
+      );
+      for (const claim of claims) {
+        const button = element("button", claim);
+        button.addEventListener("click", () => {
+          setClaim(claim);
+          run("Finding evidence and checking the claim…", () => verifyClaim(claim));
+        });
+        $("choices").append(button);
+      }
+    }
+    $("status").textContent = "Finding evidence and checking the captured claim…";
+    await verifyClaim(claims[0]);
   }),
 );
 $("discard").addEventListener("click", () => {
@@ -92,23 +141,9 @@ $("selection").addEventListener("click", () =>
   run("Reading your selection…", async () => {
     const data = await message("selection");
     if (!data.text?.trim()) throw new Error("Select a claim on the page first, or paste it below.");
-    setClaim(data.text);
-  }),
-);
-$("read").addEventListener("click", () =>
-  run("Reading visible claims with Gemini…", async () => {
-    if (!image) throw new Error("Capture a screen first.");
-    const data = await request("extract-screen", { image });
-    if (!Array.isArray(data.claims) || !data.claims.length)
-      throw new Error("No legible factual claim was found. Capture clearer text or paste a claim.");
-    $("choices").replaceChildren();
-    for (const claim of data.claims) {
-      const button = document.createElement("button");
-      button.textContent = claim;
-      button.addEventListener("click", () => setClaim(claim));
-      $("choices").append(button);
-    }
-    setClaim(data.claims[0]);
+    setClaim(data.text.trim());
+    $("status").textContent = "Finding evidence and checking the selected claim…";
+    await verifyClaim(data.text.trim());
   }),
 );
 function element(tag, text, className) {
@@ -142,9 +177,13 @@ function render(result) {
     element("h2", result.input),
     element("p", result.summary),
   );
+  if (result.demo) root.append(element("p", "Demo · These results are simulated.", "muted"));
   for (const warning of result.warnings || []) root.append(element("p", warning));
   for (const claim of result.claims) {
-    root.append(element("h3", claim.claim), element("p", claim.explanation));
+    if (result.claims.length > 1 || claim.claim !== result.input)
+      root.append(element("h3", claim.claim));
+    if (result.claims.length > 1 || claim.explanation !== result.summary)
+      root.append(element("p", claim.explanation));
     for (const evidence of claim.evidence || []) {
       const source = claim.sources?.find((s) => s.id === evidence.source_id);
       if (!source) continue;
@@ -173,96 +212,60 @@ function render(result) {
 }
 $("check-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  if (!enabled) return;
   const text = $("claim").value.trim();
   if (text.length < 8 || text.length > 2000) {
     error("Use a claim between 8 and 2000 characters.");
     return;
   }
   $("result").hidden = true;
-  run("Finding evidence and checking the claim…", async () => {
-    const result = await request("analyze-claim", { text });
-    render(result);
+  run("Finding evidence and checking the claim…", () => verifyClaim(text));
+});
+async function verifyClaim(text) {
+  if (text.length < 8 || text.length > 2000)
+    throw new Error("Use a claim between 8 and 2000 characters.");
+  const result = await request("analyze-claim", { text });
+  render(result);
+  try {
     const { history = [] } = await chrome.storage.local.get("history");
-    await chrome.storage.local.set({ history: [result, ...history].slice(0, 20) });
-  });
-});
-$("enabled").addEventListener("change", async () => {
-  try {
-    const data = await message("set-enabled", { enabled: $("enabled").checked });
-    enabled = data.enabled;
-    updateButtons();
-  } catch (failure) {
-    $("enabled").checked = enabled;
-    error(failure.message);
+    await chrome.storage.local.set({
+      history: [result, ...(Array.isArray(history) ? history : [])].slice(0, 20),
+    });
+  } catch {
+    error("The check completed, but this browser could not save it to history.");
   }
-});
-$("api-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
+}
+async function consumeSelectedText() {
   if (busy) return;
-  try {
-    const url = new URL($("api-url").value.trim());
-    if (
-      url.username ||
-      url.password ||
-      url.pathname !== "/" ||
-      url.search ||
-      url.hash ||
-      (url.protocol !== "https:" &&
-        !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)))
-    )
-      throw new Error(
-        "Use an HTTPS service origin or localhost URL, without a path or credentials.",
-      );
-    const origins = [`${url.origin}/*`];
-    if (
-      !(await chrome.permissions.contains({ origins })) &&
-      !(await chrome.permissions.request({ origins }))
-    )
-      throw new Error("Access was not granted. The connection was not changed.");
-    const data = await message("connect", { apiUrl: url.origin });
-    apiUrl = data.apiUrl;
-    error();
-    $("status").textContent = "Connection saved.";
-  } catch (failure) {
-    error(failure.message);
-  }
-});
-$("clear-history").addEventListener("click", async () => {
-  await chrome.storage.local.remove("history");
-  $("result").hidden = true;
-  $("result").replaceChildren();
-});
+  const { selectedText, selectedWindowId } = await chrome.storage.session.get([
+    "selectedText",
+    "selectedWindowId",
+  ]);
+  if (!selectedText || busy) return;
+  const current = await chrome.windows.getCurrent();
+  if (selectedWindowId !== undefined && selectedWindowId !== current.id) return;
+  await run("Finding evidence and checking the selected claim…", async () => {
+    await chrome.storage.session.remove(["selectedText", "selectedWindowId"]);
+    const text = selectedText.trim();
+    setClaim(text);
+    await verifyClaim(text);
+  });
+}
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.enabled) {
-    enabled = changes.enabled.newValue !== false;
-    $("enabled").checked = enabled;
-    updateButtons();
-  }
   if (area === "local" && changes.apiUrl) {
     apiUrl = changes.apiUrl.newValue;
-    $("api-url").value = apiUrl;
   }
   if (area === "session" && changes.selectedText) {
-    setClaim(changes.selectedText.newValue || "");
-    chrome.storage.session.remove("selectedText");
+    void consumeSelectedText().catch((failure) => error(failure.message));
   }
 });
 (async () => {
   try {
     const data = await message("get-status");
-    enabled = data.enabled;
     apiUrl = data.apiUrl;
-    $("enabled").checked = enabled;
-    $("api-url").value = apiUrl;
     updateButtons();
     const { history = [] } = await chrome.storage.local.get("history");
     if (history[0]) render(history[0]);
-    const { selectedText } = await chrome.storage.session.get("selectedText");
-    if (selectedText) {
-      setClaim(selectedText);
-      await chrome.storage.session.remove("selectedText");
-    }
+    await consumeSelectedText();
   } catch (failure) {
     error(failure.message);
   }

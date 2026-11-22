@@ -9,6 +9,27 @@ const post = (base, body, headers = {}) =>
     body: JSON.stringify(body),
   });
 
+test("readiness waits for storage initialization rather than reporting a premature success", async (t) => {
+  const storeModule = require("../dist/store.js");
+  let finish;
+  t.mock.method(
+    storeModule,
+    "createStore",
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const base = await server(t);
+  try {
+    assert.equal((await fetch(base + "/readyz")).status, 503);
+  } finally {
+    finish({ close: async () => {} });
+  }
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal((await fetch(base + "/readyz")).status, 200);
+});
+
 test("app imports without listening and exposes configured readiness", async (t) => {
   const base = await server(t);
   const response = await fetch(base + "/api/health");

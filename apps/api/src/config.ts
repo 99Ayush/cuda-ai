@@ -1,6 +1,7 @@
 import path from "node:path";
 import dotenv from "dotenv";
 import { z } from "zod";
+import { VERITY_EXTENSION_ID } from "@claimlens/shared";
 
 const integer = (fallback: number, min: number, max: number) =>
   z.coerce.number().int().min(min).max(max).default(fallback);
@@ -21,13 +22,14 @@ const Origin = z.string().refine((value) => {
 export const ConfigSchema = z.object({
   geminiKey: z.string().default(""),
   tavilyKey: z.string().default(""),
-  googleKey: z.string().default(""),
+  pubmedEnabled: z.boolean().default(false),
+  wikidataEnabled: z.boolean().default(false),
+  wikidataContactEmail: z.string().default("contact-email"),
   model: Model.default("gemini-3.5-flash-lite"),
   fallbackModel: Model.default("gemini-3.1-flash-lite"),
   backupModel: Model.default("gemini-2.5-flash"),
-  googleEngineId: z.string().default(""),
   allowedOrigins: z.array(Origin).default([]),
-  allowedExtensionIds: z.array(z.string().regex(/^[a-p]{32}$/)).default([]),
+  allowedExtensionIds: z.array(z.string().regex(/^[a-p]{32}$/)).default([VERITY_EXTENSION_ID]),
   production: z.boolean().default(false),
   vercel: z.boolean().default(false),
   demo: z.boolean().default(false),
@@ -63,7 +65,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (env === process.env)
     dotenv.config({
       path: [
+        path.resolve(__dirname, "../../../.env.local"),
         path.resolve(__dirname, "../../../.env"),
+        path.resolve(__dirname, "../.env.local"),
         path.resolve(__dirname, "../.env"),
         path.resolve(__dirname, "../../web/.env"),
       ],
@@ -73,8 +77,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = ConfigSchema.safeParse({
     geminiKey: clean(env.GEMINI_API_KEY),
     tavilyKey: clean(env.TAVILY_API_KEY),
-    googleKey: env.GOOGLE_SEARCH_ENABLED === "true" ? clean(env.GOOGLE_SEARCH_API_KEY) : "",
-    googleEngineId: clean(env.GOOGLE_SEARCH_ENGINE_ID),
+    pubmedEnabled: boolean(env.PUBMED_ENABLED, true),
+    wikidataEnabled: boolean(env.WIKIDATA_ENABLED, true),
+    wikidataContactEmail: clean(env.WIKIDATA_CONTACT_EMAIL) || undefined,
     model: clean(env.GEMINI_MODEL) || undefined,
     fallbackModel: clean(env.GEMINI_FALLBACK_MODEL) || undefined,
     backupModel: clean(env.GEMINI_BACKUP_MODEL) || undefined,
@@ -82,10 +87,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .split(",")
       .map((value) => value.trim())
       .filter(Boolean),
-    allowedExtensionIds: (env.ALLOWED_EXTENSION_IDS || "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean),
+    allowedExtensionIds: env.ALLOWED_EXTENSION_IDS
+      ? env.ALLOWED_EXTENSION_IDS.split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : undefined,
     production: env.NODE_ENV === "production" || env.VERCEL === "1",
     vercel: env.VERCEL === "1",
     demo: boolean(env.DEMO_MODE),

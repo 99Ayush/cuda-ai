@@ -7,7 +7,7 @@ if (require.main === module) {
     if (!Number.isInteger(port) || port < 1 || port > 65535)
       throw new Error("PORT must be a valid TCP port.");
     const server = app.listen(port, process.env.HOST || "127.0.0.1", () =>
-      console.log(`ClaimLens http://localhost:${port}`),
+      console.log(`Verity http://localhost:${port}`),
     );
     let stopping = false;
     for (const signal of ["SIGINT", "SIGTERM"] as const)

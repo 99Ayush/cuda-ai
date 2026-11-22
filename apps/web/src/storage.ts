@@ -111,7 +111,7 @@ export function importHistory(text: string, format: "json" | "csv"): Result[] {
   else {
     const rows = parseCsv(text);
     const index = rows[0]?.indexOf("report_json") ?? -1;
-    if (index < 0) throw new Error("Import a ClaimLens CSV export containing full reports.");
+    if (index < 0) throw new Error("Import a Verity CSV export containing full reports.");
     values = rows
       .slice(1)
       .filter((row) => row.some(Boolean))

@@ -1,19 +1,15 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Download, Puzzle, RefreshCw } from "lucide-react";
+import { ChevronDown, Download, Puzzle, RefreshCw, Shield, Globe2, Sparkles } from "lucide-react";
 import { z } from "zod";
 import type { Health } from "@claimlens/shared";
+import type { Appearance } from "./hooks/feedback";
+import { evidenceProviders } from "./provider-catalog";
 const ExtensionStatus = z.object({
   installed: z.boolean(),
-  enabled: z.boolean(),
-  apiUrl: z.string(),
   version: z.string(),
 });
 type Status = z.infer<typeof ExtensionStatus>;
-type RequestType = "get-status" | "set-enabled" | "connect";
-function extensionRequest(
-  type: RequestType,
-  data: { enabled?: boolean; apiUrl?: string } = {},
-): Promise<Status> {
+function extensionRequest(): Promise<Status> {
   return new Promise((resolve, reject) => {
     const id = crypto.randomUUID();
     const timeout = setTimeout(() => {
@@ -44,16 +40,27 @@ function extensionRequest(
       else reject(new Error(parsed.data.error || "The extension did not return a valid status."));
     }
     window.addEventListener("message", receive);
-    window.postMessage({ channel: "CUDA_AI_WEBSITE", id, type, ...data }, window.location.origin);
+    window.postMessage(
+      { channel: "CUDA_AI_WEBSITE", id, type: "get-status" },
+      window.location.origin,
+    );
   });
 }
-export default function Settings({ health }: { health: Health }) {
+export default function Settings({
+  health,
+  appearance,
+  onAppearanceChange,
+}: {
+  health: Health;
+  appearance: Appearance;
+  onAppearanceChange: (value: Appearance) => void;
+}) {
   const [extension, setExtension] = useState<Status | null>(null);
   const [checking, setChecking] = useState(true);
   const [notice, setNotice] = useState("");
   useEffect(() => {
     let active = true;
-    extensionRequest("get-status")
+    extensionRequest()
       .then((data) => {
         if (active) setExtension(data);
       })
@@ -65,23 +72,12 @@ export default function Settings({ health }: { health: Health }) {
       active = false;
     };
   }, []);
-  async function update(type: RequestType, data: { enabled?: boolean; apiUrl?: string } = {}) {
-    const previous = extension;
-    if (type === "set-enabled" && extension && typeof data.enabled === "boolean")
-      setExtension({ ...extension, enabled: data.enabled });
+  async function checkConnection() {
     setChecking(true);
     setNotice("");
     try {
-      setExtension(await extensionRequest(type, data));
-      setNotice(
-        type === "connect"
-          ? "Extension connected to this backend."
-          : type === "get-status"
-            ? "Extension detected."
-            : "Extension settings updated.",
-      );
+      setExtension(await extensionRequest());
     } catch (error) {
-      if (type === "set-enabled") setExtension(previous);
       setNotice(error instanceof Error ? error.message : "The extension could not be reached.");
     } finally {
       setChecking(false);
@@ -89,35 +85,34 @@ export default function Settings({ health }: { health: Health }) {
   }
   return (
     <section className="settings-view">
-      <div className="section-label">
-        <h1>SYSTEM_SETTINGS</h1>
-        <span>THIS_DEVICE</span>
+      <div className="page-heading">
+        <h1>Settings</h1>
+        <p>Your browser, connected.</p>
       </div>
       <div className="settings-card">
         <div className="settings-title">
-          <Puzzle size={23} />
-          <h2>Screen fact-checking extension</h2>
+          <span className="settings-feature-icon">
+            <Puzzle size={25} />
+          </span>
+          <h2>Take Verity with you</h2>
         </div>
-        <p>
-          Capture a claim from the page you’re reading, review the text, and check its evidence. The
-          installed extension works while this website is closed.
-        </p>
+        <p>Check a claim on the page you’re reading, without switching tabs.</p>
         <div className="extension-install-actions">
-          <a className="secondary-button" href="/claimlens-extension.zip" download>
+          <a className="secondary-button" href="/verity-extension.zip" download>
             <Download size={17} />
-            Add extension · Download
+            Download extension
           </a>
           <span>Chrome & Edge</span>
         </div>
-        <details className="install-guide" open>
+        <details className="install-guide">
           <summary>
-            Installation instructions<span>5 steps · 2 min</span>
+            How to install
             <ChevronDown size={16} />
           </summary>
           <ol className="install-steps">
             <li>
-              <strong>Unzip</strong> the downloaded <code>claimlens-extension.zip</code> into a
-              folder you will keep.
+              <strong>Unzip</strong> the downloaded <code>verity-extension.zip</code> into a folder
+              you will keep.
             </li>
             <li>
               Open <code>chrome://extensions</code> in Chrome, or <code>edge://extensions</code> in
@@ -130,13 +125,9 @@ export default function Settings({ health }: { health: Health }) {
               Click <strong>Load unpacked</strong> and choose the unzipped folder that contains{" "}
               <code>manifest.json</code>.
             </li>
-            <li>
-              Reload this website, then click <strong>Connect extension to this website</strong>{" "}
-              below and check that the status shows <strong>Installed</strong>.
-            </li>
           </ol>
           <p className="view-description">
-            Pin ClaimLens from the extensions menu to capture claims from any page. This ZIP is a
+            Pin Verity from the extensions menu to capture claims from any page. This ZIP is a
             development install; one-click installation needs a browser-store listing.
           </p>
         </details>
@@ -147,63 +138,75 @@ export default function Settings({ health }: { health: Health }) {
               ? "Checking extension…"
               : extension
                 ? `Installed · v${extension.version}`
-                : "Not installed or not detected"}
+                : "Not connected"}
           </span>
-          <button className="text-button" disabled={checking} onClick={() => update("get-status")}>
+          <button
+            className="text-button"
+            disabled={checking}
+            onClick={() => void checkConnection()}
+          >
             <RefreshCw size={14} />
             Check connection
           </button>
         </div>
-        <label className="extension-toggle">
-          <span>
-            <strong>Enable screen checking</strong>
-            <small>
-              {extension
-                ? "Your preference stays saved in the extension."
-                : "Install the extension to enable screen checking."}
-            </small>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            checked={extension?.enabled || false}
-            disabled={!extension || checking}
-            onChange={(event) => update("set-enabled", { enabled: event.target.checked })}
-          />
-        </label>
-        {extension && (
-          <>
-            <p className="view-description">
-              Connected backend: <code>{extension.apiUrl}</code>
-            </p>
-            <button
-              className="secondary-button"
-              disabled={checking}
-              onClick={() => update("connect", { apiUrl: window.location.origin })}
-            >
-              Connect extension to this website
-            </button>
-          </>
-        )}
         {notice && (
           <p className="notice" role="status">
             {notice}
           </p>
         )}
       </div>
-      <div className="settings-card">
-        <h2>Verification providers</h2>
-        <p>
-          Gemini reads screenshots and analyzes evidence. Tavily retrieves sources.{" "}
-          {health.configured?.google
-            ? `Google ${health.configured.google_mode === "web_search" ? "web search" : "fact-check index"} is configured as an additional evidence source.`
-            : "Google evidence search is not configured on this backend."}
-        </p>
-        <p className="view-description">
-          The browser keeps the installed extension available. It captures only when you click, and
-          a local backend must keep running. Screenshots are sent for reading only after you approve
-          the preview; API keys remain on the server.
-        </p>
+      <div className="settings-secondary-grid">
+        <div className="settings-card appearance-card">
+          <div className="settings-title">
+            <h2>Appearance</h2>
+          </div>
+          <label htmlFor="appearance">Colour preference</label>
+          <select
+            id="appearance"
+            value={appearance}
+            onChange={(event) => onAppearanceChange(event.target.value as Appearance)}
+          >
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="system">Follow system</option>
+          </select>
+          <p>Dark is the default. System follows your device setting.</p>
+        </div>
+        <div className="settings-card provider-card">
+          <div className="settings-title">
+            <Globe2 size={20} />
+            <h2>Evidence providers</h2>
+          </div>
+          {evidenceProviders(health).map((provider) => (
+            <div className="provider-row" key={provider.name}>
+              <span className="provider-description">
+                <strong>{provider.name}</strong>
+                <small>{provider.detail}</small>
+              </span>
+              <span className={`provider-state ${provider.enabled ? "connected" : ""}`}>
+                {provider.enabled ? "Enabled" : provider.missing}
+              </span>
+            </div>
+          ))}
+          <div className="analysis-provider">
+            <Sparkles size={16} />
+            <span>Analysis · Gemini</span>
+            <span className={`provider-state ${health.configured?.analysis ? "connected" : ""}`}>
+              {health.configured?.analysis ? "Configured" : "Key needed"}
+            </span>
+          </div>
+        </div>
+        <div className="settings-card privacy-card">
+          <div className="settings-title">
+            <Shield size={20} />
+            <h2>Private by default</h2>
+          </div>
+          <p>
+            History stays on this device. Selecting an area in the extension sends that crop to
+            Gemini for reading and checking.
+          </p>
+          <span className="privacy-footnote">Provider keys stay on the server.</span>
+        </div>
       </div>
     </section>
   );

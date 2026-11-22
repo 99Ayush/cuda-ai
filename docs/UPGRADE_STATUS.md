@@ -1,4 +1,4 @@
-# ClaimLens upgrade status
+# Verity upgrade status
 
 Finalized 21 November 2026 (Asia/Calcutta). Working repository: `C:/Users/master/Documents/Codex/2026-11-17/in-x20/work/cuda-ai`, branch `feat/working-fact-checker`, remote `origin` at `https://github.com/99Ayush/cuda-ai.git`. The pre-upgrade baseline is preserved in commit `0029451`; the audit precedes it in `c306881`.
 
@@ -11,7 +11,7 @@ Commands were run from the repository root with Node `v22.23.2` and npm `11.13.0
 - `npm run check` passes: strict typecheck, 77/77 tests (64 API/web plus 13 extension), lint and production build of shared, API, web and extension.
 - `npm audit --audit-level=high` reports 0 vulnerabilities.
 - `npm run format:check` passes after one repository-wide Prettier normalization.
-- `npm run e2e` passes 7/7 Playwright specs against the offline demo server on 21 November 2026 using the locally installed Chromium kernel (17.4 s). This is browser-level verification of the fixture UI, not provider accuracy.
+- `npm run e2e` passes 8/8 Playwright specs against the offline demo server on 21 November 2026 using the locally installed Chromium kernel (19.9 s). Coverage includes 375px layouts, cancellation, import/export, appearance preferences, and dialog focus trapping and restoration. This verifies the fixture UI, not provider accuracy.
 - `npm run eval:validate` passes 11 deterministic integrity checks over the 130-case FEVER-derived dataset and its provenance record. It validates structure and labelling provenance; it does not measure accuracy.
 - The runtime is `node apps/api/dist/index.js`. The legacy JavaScript runtime modules were removed; `apps/api/index.js`, the dev script and the tests all target compiled TypeScript.
 - The local server is listening on `127.0.0.1:8080`. `GET /api/health` returns 200 with `status: ready`, evidence and analysis configured, `history: browser`, `persistence: false`. The built UI is served at `http://localhost:8080`.
@@ -36,7 +36,7 @@ No factual performance score, accuracy figure or completion claim beyond these o
 
 - Run the FEVER-derived regression against real provider credentials and record measured results before making accuracy claims. Dataset integrity is validated offline; accuracy is not.
 - Execute the container image on a host with Docker or Podman and run the localhost load test, including the optional Postgres profile.
-- Add the remaining database transaction and delete paths, extension popover and result deep link if those features are wanted.
+- Sharing writes now use atomic SQLite/Postgres transactions. Run live Postgres integration and load tests; authenticated share revocation and an extension result deep link remain optional future work.
 - Keep `docs/ADR-*.md` and `docs/INTERVIEW.md` current when architecture or trade-offs change.
 - Keep the repository on this verified checkpoint by running `npm run check` and `npm audit --audit-level=high` before each merge. The pre-commit hook runs typecheck, lint and formatting checks.
 

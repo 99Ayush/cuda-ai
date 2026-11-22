@@ -7,6 +7,28 @@ const { zip, crc32 } = require("../../../scripts/build-extension.js");
 const { normalizeSources, validateAnalysis } = require("../../../apps/api/dist/engine.js");
 const image =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/R6sAAAAASUVORK5CYII=";
+test("production permits the shipped extension identity and rejects other origins", async (t) => {
+  const { VERITY_EXTENSION_ID } = require("@claimlens/shared");
+  const base = await server(t, {
+    config: { ...config, production: true },
+    providers: providers({
+      generate: async () => ({ text: "Earth orbits the Sun.", claims: ["Earth orbits the Sun."] }),
+    }),
+  });
+  for (const [origin, status] of [
+    [`chrome-extension://${VERITY_EXTENSION_ID}`, 200],
+    [`chrome-extension://${"a".repeat(32)}`, 403],
+    ["https://untrusted.example", 403],
+  ]) {
+    const result = await fetch(base + "/api/extract-screen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify({ image }),
+    });
+    assert.equal(result.status, status);
+    if (status === 200) assert.equal(result.headers.get("access-control-allow-origin"), origin);
+  }
+});
 test("screenshots reject non-images, malformed and oversized data before provider calls", () => {
   for (const value of [
     null,
@@ -108,39 +130,11 @@ test("busy Gemini uses a fallback with identical evidence, while quota never swi
   );
   assert.equal(quotas, 1);
 });
-test("Google search merges sources and reports failure without discarding Tavily evidence", async () => {
-  for (const failed of [false, true]) {
-    const provider = createProviders(
-      { ...config, googleKey: "test-google", googleEngineId: "engine" },
-      async (url) => {
-        if (url.includes("tavily"))
-          return Response.json({
-            results: [
-              {
-                url: "https://source.example/story",
-                content: "Independent evidence text for the claim.",
-              },
-            ],
-          });
-        assert.match(url, /cx=engine/);
-        if (failed) return new Response("denied", { status: 403 });
-        return Response.json({
-          items: [
-            {
-              link: "https://google-source.example/story",
-              title: "Evidence",
-              snippet: "Google returned a corroborating source excerpt.",
-            },
-          ],
-        });
-      },
-    );
-    const results = await provider.search("Claim to check", [], AbortSignal.timeout(1000));
-    assert.equal(results[0].provider, "Tavily");
-    assert.equal(results.warnings.length, failed ? 1 : 0);
-    if (!failed) assert.equal(results[1].provider, "Google Search");
-  }
+test("retrieval uses the remaining evidence providers only",async()=>{
+ const calls=[];const provider=createProviders({...config,googleKey:"legacy",braveKey:"legacy"},async endpoint=>{calls.push(endpoint);return Response.json({results:[{url:"https://example.org/evidence",content:"Original evidence text."}]});});
+ const results=await provider.search("claim to check",[],AbortSignal.timeout(3000));assert.equal(calls.length,1);assert.match(calls[0],/tavily/);assert.equal(results[0].provider,"Tavily");assert.equal(results.warnings.length,0);
 });
+
 test("extension archive has verified CRC, directory and expected filenames", () => {
   assert.equal(crc32(Buffer.from("123456789")), 0xcbf43926);
   const data = zip([["manifest.json", Buffer.from('{"manifest_version":3}')]]);

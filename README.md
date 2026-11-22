@@ -1,4 +1,4 @@
-# ClaimLens
+# Verity
 
 A fact-checking website for claims and public articles. It retrieves web evidence with Tavily and uses Gemini to compare that evidence with the claim. Findings use the contract values **TRUE**, **FALSE**, **MIXED**, or **UNVERIFIED** (shown in the UI as Supported, Refuted, Mixed findings, or Unverified), with exact source excerpts and links.
 
@@ -58,12 +58,12 @@ The server lives inside apps/api/src so a Vercel project rooted at apps/web can 
 - **Uncertainty:** no evidence yields Unverified. Provider outages, quota failures and invalid output produce clear retryable errors; they do not become fabricated findings.
 - **History:** up to 50 validated reports are stored in this browser's localStorage, with search, individual deletion, clearing and JSON export. There is no account or cross-device synchronization. Anyone using this browser profile can see its history.
 - **Provider processing:** claim text and extracted article text are sent to Tavily and Gemini as part of analysis. The application does not keep a global server history or log submitted text/API keys.
-- **Security:** same-origin API access by default, bounded JSON input, public-domain URL validation, safe citation links and safe JSON errors. The app never directly fetches arbitrary user URLs; extraction is delegated to Tavily.
+- **Security:** same-origin API access by default, bounded JSON input, public-domain URL validation, safe citation links and safe JSON errors. The backend resolves and pins public article addresses, checks redirects, and bounds downloaded and decompressed content before extraction.
 - **Usage limits:** 10 checks per minute per IP per function instance. Vercel's proxy topology is trusted only when running on Vercel; local clients cannot choose their apparent IP. For substantial public traffic, configure shared rate limits, Vercel Firewall and provider spending limits.
 - **Provider availability:** temporary network failures and upstream 408/500/502/503/504 responses are retried once within the existing deadline. Busy, unavailable or timed-out Gemini models can use configured fallbacks with the same evidence. Authentication and quota failures return explicit errors without retries or model switching.
 - **Scope:** text and article fact checking, plus extraction of visible claims from screenshots. Image authenticity, videos, deepfake detection and emergency coordination are outside this release.
 
-The UI restores the original dark dashboard: navigation rail, compact claim-or-URL search, radar standby frame and telemetry sidebar. History and Stats use this browser's saved reports. Telemetry shows configuration readiness, measured scan latency and local archive usage. The UI shows evidence coverage rather than uncalibrated confidence percentages.
+The UI uses a dark editorial evidence desk with separate claim entry and source reading, serif typography, concise copy, and responsive navigation. Results put quoted evidence and source links first. History and activity reflect checks saved in this browser. The interface does not display uncalibrated model percentages or decorative system telemetry.
 
 ## API
 
@@ -95,15 +95,15 @@ The Node tests cover HTTP routes, validation, provider outages, evidence groundi
 
 ## Optional browser extension
 
-Settings includes **Add as extension**, a downloadable installable ZIP, connection controls and a persistent screen-checking switch. Run `npm run extension:build` or `npm run build`, extract `apps/web/public/claimlens-extension.zip`, and load its folder through Chrome/Edge’s **Load unpacked**. You can also load `apps/web/extension` directly.
+Settings includes a downloadable extension ZIP. Run `npm run extension:build` or `npm run build`, extract `apps/web/public/verity-extension.zip`, and load its folder through Chrome/Edge’s **Load unpacked**. You can also load `apps/extension` directly. The extension’s Preferences section has been removed.
 
-Click the toolbar icon to open the independent side panel. **Capture screen** captures the visible page locally; **Read claims from screenshot** sends the reviewed screenshot to Gemini. Edit the claim and click **Verify claim** to retrieve Tavily evidence and a validated Gemini verdict. Selected text and right-click verification are supported. Closing the website does not disable the installed extension. Keep the browser running and, for localhost, keep the backend running.
+Click the toolbar icon, choose **Search on screen**, and drag over a claim. Releasing the mouse crops the selected area, automatically extracts its claim, fills the field, and starts checking. Use selected text also starts checking automatically; right-click selection remains supported. After navigating to a new site, click the toolbar icon there to grant temporary page access. Closing the website does not disable the extension. Keep the browser and local backend running.
 
-The extension stores up to 20 text reports locally and never stores screenshots. Reload the website after installation to connect or toggle the extension from Settings. Public one-click installation requires publishing to Chrome Web Store or Edge Add-ons; the current ZIP supports development installation. See the [extension guide](apps/extension/README.md) for permissions and custom backend configuration.
+The extension stores up to 20 text reports locally and never stores screenshots. Reload the unpacked extension after updating its files. Public one-click installation requires a Chrome Web Store or Edge Add-ons listing; the current ZIP supports development installation. See the [extension guide](apps/extension/README.md).
 
-The server tries `GEMINI_FALLBACK_MODEL` when the primary model is busy or unavailable, using the same evidence and citation validation; the report records the actual model. Authentication and quota failures do not trigger model switching. Optional Google search stays disabled with `GOOGLE_SEARCH_ENABLED=false`. If enabled, the key alone uses Google’s fact-check index; `GOOGLE_SEARCH_ENGINE_ID` enables general Custom Search. Both require the corresponding Google API to be enabled. A Google outage is visible in the report and does not discard Tavily evidence.
+The server tries `GEMINI_FALLBACK_MODEL` when the primary model is busy or unavailable, preserving citation validation. Authentication and quota failures do not trigger model switching. `PUBMED_ENABLED=true` routes health claims to PubMed abstracts and excludes marked retracted publications. `WIKIDATA_ENABLED=true` grounds named entities through Wikidata, using a 24-hour entity cache and a 5-second request timeout. Configure `WIKIDATA_CONTACT_EMAIL` for its User-Agent. These are supporting evidence signals; provider outages retain available evidence and appear as warnings. API keys never reach the frontend or extension.
 
-`npm run benchmark` runs 30 real-provider cases against `BENCHMARK_URL` (default http://127.0.0.1:18082). It checks expected verdicts, specific explanations and exact quotations. These are regression examples, not a general accuracy estimate.
+`npm run benchmark` runs 30 real-provider cases against `BENCHMARK_URL` (default http://127.0.0.1:8080), writing to `work/benchmark-results.json` unless `BENCHMARK_OUTPUT` is set. It reports quotation counts and distinguishes citation-free abstention from evidence-free definitive verdicts. Retries are bounded and respect rate-limit responses. These are regression examples, not a general accuracy estimate.
 
 ## License
 

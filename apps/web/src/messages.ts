@@ -1,6 +1,6 @@
 // Typed English catalog. Add a matching Hindi catalog without changing components.
 export const english = {
-  brand: "ClaimLens",
+  brand: "Verity",
   check: "Check",
   history: "History",
   statistics: "Statistics",

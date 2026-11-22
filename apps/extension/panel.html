@@ -3,28 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>ClaimLens Screen Check</title>
+    <title>Verity Screen Check</title>
     <link rel="stylesheet" href="panel.css" />
   </head>
   <body>
     <main>
       <header>
-        <span class="eyebrow">CUDA_CORE // SCREEN_CHECK</span>
-        <h1>Verify what you see.</h1>
-        <p>Capture a screen or select text. Review the claim before checking it.</p>
+        <div class="brand">
+          <img src="logo.png" alt="" width="40" height="40" /><span class="eyebrow">Verity.</span>
+        </div>
+        <h1>Check the page.</h1>
+        <p>Select an area. We’ll read the claim and check its evidence.</p>
       </header>
       <div class="capture-actions">
-        <button id="capture">Capture screen</button
-        ><button id="selection" class="secondary">Use selected text</button>
+        <button id="capture" type="button" class="secondary">Search on screen</button
+        ><button id="selection" type="button" class="secondary">Use selected text</button>
       </div>
+      <p class="muted capture-note">
+        Selecting an area sends only that crop for reading and checking. Screenshots are not saved.
+      </p>
       <section id="preview" hidden>
-        <img id="screenshot" alt="Your captured screen" /><button id="read">
-          Read claims from screenshot</button
-        ><button id="discard" class="secondary">Discard screenshot</button>
-        <p class="muted">
-          Only “Read claims” sends this screenshot to Gemini. Screenshots are never saved in
-          history.
-        </p>
+        <img id="screenshot" alt="The selected screen area" />
+        <button id="discard" class="secondary">Remove capture</button>
       </section>
       <div id="choices" aria-label="Extracted claims"></div>
       <form id="check-form">
@@ -35,7 +35,7 @@
           minlength="8"
           maxlength="2000"
           required
-          placeholder="Paste a claim, or read it from your screenshot."
+          placeholder="Your captured claim appears here. You can also type one."
         ></textarea>
         <div class="count" id="count">0 / 2000</div>
         <button id="verify" type="submit">Verify claim</button>
@@ -43,31 +43,6 @@
       <p id="status" role="status" aria-live="polite"></p>
       <p id="error" role="alert" hidden></p>
       <section id="result" aria-label="Fact-check result" hidden></section>
-      <details id="settings">
-        <summary>Settings &amp; extension switch</summary>
-        <label class="switch"
-          ><input id="enabled" type="checkbox" checked /> Enable screen checking</label
-        >
-        <form id="api-form">
-          <label for="api-url">Fact-checking service URL</label
-          ><input id="api-url" type="url" required placeholder="http://localhost:8080" /><button
-            type="submit"
-            class="secondary"
-          >
-            Save connection
-          </button>
-        </form>
-        <p class="muted">
-          Use your deployed ClaimLens backend, http://localhost:8080 for the local server, or
-          http://localhost:18089 for the offline fixture preview. The website tab can stay closed. A
-          local backend must keep running.
-        </p>
-        <button id="clear-history" class="secondary">Clear extension history</button>
-      </details>
-      <p class="muted">
-        Checks factual text against web evidence. This does not authenticate an image or guarantee a
-        claim is true. API keys stay on the backend.
-      </p>
     </main>
     <script src="panel.js"></script>
   </body>

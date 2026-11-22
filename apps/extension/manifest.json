@@ -1,19 +1,36 @@
 {
   "manifest_version": 3,
-  "name": "ClaimLens — Screen Fact Checker",
+  "name": "Verity — Screen Fact Checker",
   "version": "3.0.0",
   "minimum_chrome_version": "116",
-  "description": "Capture visible claims, review the text, and verify against web evidence without opening the website.",
-  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "contextMenus"],
+  "description": "Select an area on a web page to automatically read its claim and check supporting evidence.",
+  "permissions": ["activeTab", "tabs", "scripting", "storage", "sidePanel", "contextMenus"],
   "host_permissions": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
   "optional_host_permissions": ["https://*/*"],
-  "background": { "service_worker": "background.js" },
-  "side_panel": { "default_path": "panel.html" },
-  "action": { "default_title": "Check screen with ClaimLens" },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "action": {
+    "default_title": "Check screen with Verity",
+    "default_icon": {
+      "16": "logo-16.png",
+      "32": "logo-32.png"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
       "js": ["bridge.js"]
     }
-  ]
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApeI8RBV0J115FIpwT9lrcUCqRtf72sUNGUlCfynG0ICa+/mDKuL/ne2KJdlXkbmywtbucO9MQtfDRyos8mTeT2vjlZY8oxQDSBwUjo8C4wuVnKgc7g/y3DfRXK1GrhVe78eZGR0upIS1me/6WjPqCEz8stVtyOLWjT6XBeTAvZqvFvimkG3pU0hNcLnjr/JE7n3BhTU5/+Y01nvVYI8xu0dlVdyW1acbW3v4YbC24VqkwcinovBTfuecG0/alQMj6tTCnB01yAMLVOpbHedutpRNtQrp5Xl2sVB4Q+SyzpaUh+7Q+CicNyMlCyzN+/XeDfkysOHFB06gvMgRbmHoBwIDAQAB",
+  "icons": {
+    "16": "logo-16.png",
+    "32": "logo-32.png",
+    "48": "logo-48.png",
+    "128": "logo-128.png"
+  }
 }

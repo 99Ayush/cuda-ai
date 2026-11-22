@@ -358,3 +358,51 @@ test("authentication and quota failures do not trigger retry requests", async ()
     assert.equal(calls, 1);
   }
 });
+
+test("a verdict conflicting with cited stances is repaired once against the same evidence", async () => {
+  const calls = [];
+  const result = await createEngine(
+    config,
+    providers({
+      generate: async (task, data) => {
+        calls.push({ task, data });
+        return modelOutput({
+          evidence: [
+            {
+              source_id: "1-1",
+              quote: source.content,
+              stance: calls.length === 1 ? "SUPPORTS" : "REFUTES",
+            },
+          ],
+        });
+      },
+    }),
+  )({ text: claim });
+  assert.equal(calls.length, 2);
+  assert.equal(result.verdict, "FALSE");
+  assert.equal(result.claims[0].evidence[0].stance, "REFUTES");
+  assert.equal(
+    calls[1].data.claims[0].sources[0].content,
+    calls[0].data.claims[0].sources[0].content,
+  );
+  assert.deepEqual(calls[1].data.rejected_claim_indexes, [0]);
+  assert.match(calls[1].task, /stances must agree/);
+});
+
+test("consistency repair stays bounded and preserves abstention when the model remains inconsistent", async () => {
+  let calls = 0;
+  const result = await createEngine(
+    config,
+    providers({
+      generate: async () => {
+        calls++;
+        return modelOutput({
+          evidence: [{ source_id: "1-1", quote: source.content, stance: "SUPPORTS" }],
+        });
+      },
+    }),
+  )({ text: claim });
+  assert.equal(calls, 2);
+  assert.equal(result.verdict, "UNVERIFIED");
+  assert.equal(result.claims[0].confidence, null);
+});

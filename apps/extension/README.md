@@ -1,17 +1,17 @@
-# ClaimLens Screen Fact Checker
+# Verity Screen Fact Checker
 
 1. Download the ZIP from the website’s Settings and extract it.
 2. Open chrome://extensions or edge://extensions, enable Developer mode, and choose Load unpacked. Select the extracted folder containing manifest.json.
-3. Pin ClaimLens to the browser toolbar. Click its icon while viewing a normal web page to open the side panel.
-4. Capture screen, review the preview, then click Read claims from screenshot. Review or edit the extracted claim and click Verify claim.
-5. You can also select text on the page and click Use selected text, or right-click it and choose Verify selected claim with ClaimLens.
+3. Pin Verity to the browser toolbar. Click its icon while viewing a normal web page to open the side panel.
+4. Click **Search on screen**, drag over the claim, and release the mouse. The selected area appears in the panel, its claim is extracted into the field, and verification starts automatically. No screenshot shortcut or separate reading step is required. Click **Cancel** on the selection overlay to stop.
+5. You can also select text on the page and click Use selected text to check it automatically, or right-click it and choose Verify selected claim with Verity to start checking in that window.
 
 The installed extension remains available when the website tab closes. It uses the backend directly. Manifest V3 workers sleep when idle and wake on interaction; no continuous screen monitoring runs. Keep Chrome or Edge running. Firefox and Safari are not supported by this package.
 
-In panel Settings, use your deployed HTTPS backend URL. The default is http://localhost:8080, the local backend started by `npm start`. To exercise the UI without provider credentials, start `npm run preview:test` and enter http://localhost:18089 instead; it returns controlled fixture responses. Provider keys are never included. Google web search requires GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID; with the key alone the backend uses Google’s Fact Check Tools index if that API is enabled.
+The Preferences section has been removed. The backend defaults to http://localhost:8080 and preserves an existing saved connection. Keep that backend running. Provider credentials stay on the backend; the extension receives only extracted claims and validated reports. When several claims are visible, the first is checked automatically and the others can be selected for another check.
 
-Enable screen checking is a persistent switch. Reload the website after installation, then use website Settings to connect this backend or toggle the extension. The bridge supports the default deployment and localhost. For custom deployments add your origin to content_scripts.matches and host_permissions in manifest.json before installation.
+Screen checking runs only when requested. A previously disabled preference cannot block the new capture action. The bridge supports the default deployment and localhost. Custom deployments must be included in content_scripts.matches and host_permissions before installation.
 
-Captures include the visible web-page viewport, not the desktop or other applications. Protected browser pages cannot be captured. Screenshots stay in panel memory until you explicitly send them to Gemini for reading and are never saved in history. Up to 20 text reports stay in extension-local storage; clear them in Settings. This checks claims against evidence, not image authenticity or deepfakes.
+Captures contain only the selected area of the visible web page. Browser settings, extension stores, and protected browser pages cannot be captured. If you navigate to a new site while the panel stays open, click the Verity toolbar icon on that site before searching. This grants temporary access to that page; the extension does not request access to every site. The tabs permission identifies the active page in the panel’s own browser window. Selected text includes text fields and accessible frames; password fields are excluded. Releasing a selection sends that crop to Gemini for reading and starts a check. Screenshots are never saved in history; up to 20 text reports stay in extension-local storage. Removing the extension deletes its saved reports. This checks factual claims, not image authenticity or deepfakes.
 
 This is a development distribution. Public one-click installation requires publishing in Chrome Web Store or Edge Add-ons and replacing the website download link with an approved store listing.

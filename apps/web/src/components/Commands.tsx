@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { X } from "lucide-react";
 import type { View } from "../types";
+import { useModalDialog } from "../hooks/dialog";
 export default function Commands({
   onClose,
   onView,
@@ -11,9 +12,7 @@ export default function Commands({
   help?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement | null>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
+  useModalDialog(ref);
   return (
     <dialog
       ref={ref}
@@ -21,7 +20,15 @@ export default function Commands({
       aria-labelledby="commands-title"
       onCancel={onClose}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target !== event.currentTarget) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+        )
+          onClose();
       }}
     >
       <div className="dialog-heading">

@@ -25,6 +25,116 @@ const source = ts.transpileModule(
   },
 ).outputText;
 const client = import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
+async function streamedResult() {
+  const { createEngine } = require("../dist/engine.js");
+  const { config, providers } = require("./helpers.js");
+  return createEngine(
+    config,
+    providers(),
+  )({ text: "Lightning never strikes the same place twice." });
+}
+
+test("progress streams accept CRLF frames fragmented across byte boundaries", async (t) => {
+  const { streamCheck } = await client;
+  const result = await streamedResult();
+  const event =
+    'event: stage\r\ndata: {"stage":"searching","detail":"Finding evidence","elapsed_ms":1}\r\n\r\n';
+  const bytes = new TextEncoder().encode(
+    event + `event: result\r\ndata: ${JSON.stringify(result)}\r\n\r\n`,
+  );
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            for (const byte of bytes) controller.enqueue(new Uint8Array([byte]));
+            controller.close();
+          },
+        }),
+        { headers: { "Content-Type": "text/event-stream" } },
+      ),
+  );
+  const progress = [];
+  const received = await streamCheck(
+    { text: result.input },
+    (value) => progress.push(value),
+    new AbortController().signal,
+  );
+  assert.equal(received.id, result.id);
+  assert.equal(progress[0].stage, "searching");
+});
+
+test("a complete result resolves immediately and closes a stream left open by a proxy", async (t) => {
+  const { streamCheck } = await client;
+  const result = await streamedResult();
+  let producer,
+    cancelled = false;
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            producer = controller;
+            controller.enqueue(
+              new TextEncoder().encode(`event: result\ndata: ${JSON.stringify(result)}\n\n`),
+            );
+          },
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        { headers: { "Content-Type": "text/event-stream" } },
+      ),
+  );
+  const operation = streamCheck({ text: result.input }, () => {}, new AbortController().signal);
+  let timer;
+  const received = await Promise.race([
+    operation,
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(null), 250);
+    }),
+  ]);
+  clearTimeout(timer);
+  if (!cancelled) producer.close();
+  await operation;
+  assert.equal(received?.id, result.id, "Do not wait for EOF after receiving the final result");
+  assert.equal(cancelled, true);
+});
+
+test("malformed progress is actionable and cancels the network body", async (t) => {
+  const { streamCheck } = await client;
+  let cancelled = false,
+    producer;
+  t.after(() => {
+    if (!cancelled) producer.close();
+  });
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            producer = controller;
+            controller.enqueue(new TextEncoder().encode("event: stage\ndata: {broken\n\n"));
+          },
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        { headers: { "Content-Type": "text/event-stream" } },
+      ),
+  );
+  await assert.rejects(
+    streamCheck({ text: "A claim for verification." }, () => {}, new AbortController().signal),
+    /unreadable progress/i,
+  );
+  assert.equal(cancelled, true);
+});
 
 test("client preserves successful JSON and safe provider error messages", async (t) => {
   const { apiRequest } = await client;

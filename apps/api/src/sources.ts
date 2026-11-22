@@ -106,6 +106,7 @@ export function calibrate(finding: Finding, sensitive: boolean, minimum = 2): Fi
   if (finding.verdict === "UNVERIFIED") return finding;
   const byId = new Map(finding.sources.map((source) => [source.id, source]));
   const cited = finding.evidence
+    .filter((item) => item.stance === "SUPPORTS" || item.stance === "REFUTES")
     .map((item) => byId.get(item.source_id))
     .filter((item): item is Source => Boolean(item));
   const domains = new Set(

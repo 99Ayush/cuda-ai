@@ -105,17 +105,20 @@ export async function streamCheck(
     decoder = new TextDecoder();
   let buffer = "",
     received = 0,
-    result: Result | undefined;
+    pendingCR = false;
   try {
     for (;;) {
       const chunk = await reader.read();
-      if (chunk.done) break;
-      received += chunk.value.length;
+      received += chunk.value?.length || 0;
       if (received > 2_000_000) {
         await reader.cancel();
         throw new Error("This result was too large. Use a shorter claim.");
       }
-      buffer += decoder.decode(chunk.value, { stream: true }).replace(/\r\n/g, "\n");
+      let decoded = decoder.decode(chunk.value, { stream: !chunk.done });
+      if (pendingCR) decoded = "\r" + decoded;
+      pendingCR = !chunk.done && decoded.endsWith("\r");
+      if (pendingCR) decoded = decoded.slice(0, -1);
+      buffer += decoded.replace(/\r\n|\r/g, "\n");
       let end: number;
       while ((end = buffer.indexOf("\n\n")) >= 0) {
         const event = buffer.slice(0, end);
@@ -130,20 +133,24 @@ export async function streamCheck(
           .filter((line) => line.startsWith("data:"))
           .map((line) => line.slice(5).trim())
           .join("\n");
-        if (!raw) continue;
+        if (!raw || !["stage", "result", "error"].includes(name || "")) continue;
         const data: unknown = JSON.parse(raw);
         if (name === "stage") onProgress(Progress.parse(data));
-        else if (name === "result") result = ResultSchema.parse(data);
+        else if (name === "result") return ResultSchema.parse(data);
         else if (name === "error") throw new Error(message(data));
       }
+      if (chunk.done) break;
     }
   } catch (error) {
     if (signal.aborted || error instanceof DOMException) throw failure(error, signal);
+    if (error instanceof SyntaxError || error instanceof z.ZodError)
+      throw failure(error, signal, "The service returned unreadable progress. Retry shortly.");
+    if (error instanceof TypeError)
+      throw failure(error, signal, "The connection ended unexpectedly. Please retry your check.");
     throw error;
   } finally {
+    await reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
-  if (!result)
-    throw new Error("The progress stream ended without a complete result. Retry shortly.");
-  return result;
+  throw new Error("The progress stream ended without a complete result. Retry shortly.");
 }

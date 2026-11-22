@@ -1,5 +1,7 @@
 # CUDA AI — production-readiness audit
 
+This document preserves the historical pre-upgrade baseline. The current review and subsequent fixes are recorded in `docs/REVIEW-2026-11-22.md`; the findings below should not be read as the current implementation status.
+
 Audit date: **21 November 2026, Asia/Calcutta**. Scope: the current local working tree on `feat/working-fact-checker`, based on commit `eed4a75`, including its existing uncommitted improvements. This is an audit and proposal, not approval to implement Phase 0.
 
 ## Assessment

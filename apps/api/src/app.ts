@@ -41,13 +41,21 @@ export function createApp(options: AppOptions = {}) {
     limiter = new TokenBucket(config.rateLimit),
     metrics = new Metrics(),
     controllers = new Set<AbortController>();
-  let storeError = false;
-  const storeReady = options.store
-    ? Promise.resolve(options.store)
-    : createStore(config).catch((error) => {
-        storeError = true;
-        throw error;
-      });
+  let storeError = false,
+    storeInitialized = false;
+  const storeReady = (
+    options.store
+      ? Promise.resolve(options.store)
+      : createStore(config).catch((error) => {
+          storeError = true;
+          throw error;
+        })
+  ).then((store) => {
+    storeInitialized = true;
+    return store;
+  });
+  // Serverless imports may start accepting requests before storage settles.
+  void storeReady.catch(() => undefined);
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", config.vercel ? 1 : false);
@@ -160,9 +168,10 @@ export function createApp(options: AppOptions = {}) {
     status: config.demo || (config.geminiKey && config.tavilyKey) ? "ready" : "setup_required",
     configured: {
       evidence: config.demo || Boolean(config.tavilyKey),
+      tavily: config.demo || Boolean(config.tavilyKey),
       analysis: config.demo || Boolean(config.geminiKey),
-      google: Boolean(config.googleKey),
-      google_mode: config.googleEngineId ? "web_search" : "fact_check_index",
+      pubmed: config.pubmedEnabled,
+      wikidata: config.wikidataEnabled,
     },
     history: "browser",
     version: APP_VERSION,
@@ -174,6 +183,7 @@ export function createApp(options: AppOptions = {}) {
   app.get("/readyz", (_req, res) => {
     const ready =
       health().status === "ready" &&
+      storeInitialized &&
       !storeError &&
       Object.values(providers.status?.() || {}).every((state) => state.state !== "open") &&
       (queue.state.active < config.concurrency || queue.state.queued < config.queueSize);

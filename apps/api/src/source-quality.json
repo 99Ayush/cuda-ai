@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-21",
+  "updated": "2026-11-22",
   "note": "Editorial policy signals, not calibrated truth probabilities. Review owners and tiers when adding sources.",
   "domains": {
     "weather.gov": {
@@ -38,6 +38,16 @@
       "tier": "reference",
       "owner": "Wikimedia",
       "reason": "Community reference; inspect its cited primary sources"
+    },
+    "wikidata.org": {
+      "tier": "reference",
+      "owner": "Wikimedia",
+      "reason": "Wikimedia structured data; corroborate outside the same publishing organization"
+    },
+    "iarc.fr": {
+      "tier": "primary",
+      "owner": "WHO",
+      "reason": "WHO cancer research agency; WHO and IARC are one organization for corroboration"
     },
     "reuters.com": {
       "tier": "news",

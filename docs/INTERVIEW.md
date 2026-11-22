@@ -1,10 +1,10 @@
-# Interview guide: ClaimLens
+# Interview guide: Verity
 
 Use this to talk about the project accurately under questioning. Everything here is verifiable in the repository; do not claim more than the evidence supports.
 
 ## 60-second pitch
 
-ClaimLens is a local-first fact-checking tool. It retrieves web evidence with Tavily, asks Gemini to propose an evidence-grounded analysis, then lets deterministic server-side policy reject unsupported conclusions before anything is shown to the user. Findings are TRUE, FALSE, MIXED or UNVERIFIED with verbatim source excerpts. It ships as a typed React dashboard, an Express API with SSE streaming and cancellation, and a Manifest V3 extension. History lives in the browser, not a database. The engineering emphasis is grounding, safety and honesty about uncertainty rather than a confident-looking verdict.
+Verity is a local-first fact-checking tool. It retrieves web evidence with Tavily, asks Gemini to propose an evidence-grounded analysis, then lets deterministic server-side policy reject unsupported conclusions before anything is shown to the user. Findings are TRUE, FALSE, MIXED or UNVERIFIED with verbatim source excerpts. It ships as a typed React dashboard, an Express API with SSE streaming and cancellation, and a Manifest V3 extension. History lives in the browser, not a database. The engineering emphasis is grounding, safety and honesty about uncertainty rather than a confident-looking verdict.
 
 ## What to emphasize
 
@@ -29,7 +29,7 @@ Unknown. A 130-case FEVER-derived dataset with recorded provenance is included a
 It is not needed for the core use case and would add accounts, retention policy and migration burden. Reports stay in localStorage; opt-in SQLite/Postgres share links sit behind one `Store` interface when needed.
 
 **"What is the biggest weakness?"**
-The 968-line `Dashboard.tsx` is a god component and the real-provider accuracy gap is unresolved. Also, persistence delete/transaction paths and a result deep link in the extension are not implemented.
+The real-provider accuracy gap is unresolved, and quotas are process-local when deployed across multiple instances. History and insights now have separate view components, and sharing writes are transactional. Live Postgres/load validation, authenticated share revocation, and an extension result deep link remain future work.
 
 **"Why are there two Vercel configs and three extension copies?"**
 Both repository-root and `apps/web` deployments are supported; each has a `vercel.json`. The extension has a source directory and generated packaged copies for loading unpacked. That is redundant and a cleanup candidate.
@@ -51,7 +51,7 @@ Try `no evidence for this claim`, `provider quota for this claim`, and `slow che
 - No measured accuracy baseline; no real-provider integration test.
 - Docker image defined but not executed here (no Docker/Podman/WSL).
 - No tests for the SQL adapters; the extension package itself has 13 automated tests plus a manual Chromium load.
-- Large dashboard component; decorative "protocol/telemetry" styling may read as style-over-substance.
+- Large dashboard component; the UI now uses an editorial evidence desk, but component extraction remains a maintainability improvement.
 - Local `.env` contains credentials for local use; it is gitignored and absent from history, but must be rotated before sharing the working directory.
 
 ## What I would do next, in order

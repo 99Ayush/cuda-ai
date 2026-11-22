@@ -4,6 +4,7 @@ import { ServiceError } from "./errors";
 import { resolveConfig, type EngineConfig } from "./config";
 import { fetchArticle } from "./url";
 import type { Providers, JsonSchema, Usage, SearchResults } from "./types";
+import { evidenceJobs, type WikidataCache } from "./evidence-providers";
 type Transport = (endpoint: string, options: RequestInit) => Promise<Response>;
 const SearchResponse = z
   .object({
@@ -47,12 +48,12 @@ const GeminiResponse = z
       .optional(),
   })
   .passthrough();
-export async function boundedJson(response: Response, limit = 2_000_000): Promise<unknown> {
+export async function boundedText(response: Response, limit = 2_000_000): Promise<string> {
   if (Number(response.headers.get("content-length") || 0) > limit) {
     await response.body?.cancel();
     throw new ServiceError(502, "PROVIDER_RESPONSE", "The provider returned too much content.");
   }
-  if (!response.body) return JSON.parse("");
+  if (!response.body) return "";
   const reader = response.body.getReader();
   let size = 0;
   const chunks: Uint8Array[] = [];
@@ -67,10 +68,13 @@ export async function boundedJson(response: Response, limit = 2_000_000): Promis
       }
       chunks.push(chunk.value);
     }
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return Buffer.concat(chunks).toString("utf8");
   } finally {
     reader.releaseLock();
   }
+}
+export async function boundedJson(response: Response, limit = 2_000_000): Promise<unknown> {
+  return JSON.parse(await boundedText(response, limit));
 }
 export function createProviders(
   configuration: EngineConfig,
@@ -79,6 +83,8 @@ export function createProviders(
   const config = resolveConfig(configuration),
     ledger = new WeakMap<AbortSignal, Usage>();
   let attempts = 0;
+  let nextPubmedCall = 0;
+  const wikidataCache: WikidataCache = new Map();
   const circuits = new Map<string, { failures: number; opened: number; probing: boolean }>();
   function usage(signal?: AbortSignal): Usage {
     if (!signal)
@@ -355,119 +361,108 @@ export function createProviders(
         ]),
       ),
     async search(query, excludeDomains, signal) {
-      const response = SearchResponse.safeParse(
-        await post(
-          "Tavily",
-          "https://api.tavily.com/search",
-          {
-            query: query.slice(0, 400),
-            search_depth: "advanced",
-            max_results: 6,
-            include_answer: false,
-            include_raw_content: false,
-            include_published_date: true,
-            ...(excludeDomains.length ? { exclude_domains: excludeDomains } : {}),
-          },
-          { Authorization: `Bearer ${config.tavilyKey}` },
-          signal,
-          18000,
-        ),
-      );
-      if (!response.success)
-        throw new ServiceError(
-          502,
-          "INVALID_EVIDENCE",
-          "The search provider returned invalid evidence.",
-        );
-      const results: SearchResults = response.data.results
-        .filter((source) => typeof source.url === "string" && source.url.length > 0)
-        .map((source) => ({
-          ...source,
-          content: source.content ?? "",
-          title: source.title ?? undefined,
-          published_date: source.published_date ?? undefined,
-          provider: "Tavily",
-        }));
-      results.warnings = [];
-      if (config.googleKey) {
-        try {
-          const endpoint = new URL(
-            config.googleEngineId
-              ? "https://www.googleapis.com/customsearch/v1"
-              : "https://factchecktools.googleapis.com/v1alpha1/claims:search",
-          );
-          endpoint.searchParams.set(config.googleEngineId ? "q" : "query", query.slice(0, 400));
-          if (config.googleEngineId) {
-            endpoint.searchParams.set("cx", config.googleEngineId);
-            endpoint.searchParams.set("num", "4");
-          }
-          const fetched = await request(
-            "Google",
-            endpoint.href,
-            {
-              headers: { "x-goog-api-key": config.googleKey },
-              signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]),
-            },
-            signal,
-            "search_calls",
-          );
-          if (!fetched.ok) throw new Error("Google unavailable");
-          const raw = await boundedJson(fetched);
-          const schema = z.object({
-            items: z
-              .array(z.object({ link: z.string(), title: z.string(), snippet: z.string() }))
-              .optional(),
-            claims: z
-              .array(
-                z.object({
-                  text: z.string(),
-                  claimReview: z
-                    .array(
-                      z.object({
-                        url: z.string(),
-                        title: z.string().optional(),
-                        textualRating: z.string().optional(),
-                        reviewDate: z.string().optional(),
-                        publisher: z.object({ name: z.string().optional() }).optional(),
-                      }),
-                    )
-                    .optional(),
-                }),
-              )
-              .optional(),
-          });
-          const google = schema.parse(raw);
-          const extras = config.googleEngineId
-            ? (google.items || []).map((item) => ({
-                url: item.link,
-                title: item.title,
-                content: item.snippet,
-                provider: "Google Search",
-              }))
-            : (google.claims || []).flatMap((item) =>
-                (item.claimReview || []).map((review) => ({
-                  url: review.url,
-                  title: review.title || "Fact-check review",
-                  content: `Claim reviewed: ${item.text}. ${review.publisher?.name || "Publisher"}: ${review.textualRating || ""}. ${review.title || ""}`,
-                  published_date: review.reviewDate,
-                  provider: "Google Fact Check",
-                })),
-              );
-          const merged: SearchResults = [];
-          for (let index = 0; index < Math.max(results.length, extras.length); index++) {
-            if (results[index]) merged.push(results[index]!);
-            if (extras[index]) merged.push(extras[index]!);
-          }
-          merged.warnings = results.warnings;
-          return merged;
-        } catch {
-          if (signal.aborted) signal.throwIfAborted();
-          results.warnings.push(
-            "Google evidence search is unavailable; this finding uses Tavily sources.",
-          );
+      async function get(name: string, url: URL, headers: Record<string, string> = {}) {
+        if (name === "PubMed") {
+          const wait = Math.max(0, nextPubmedCall - Date.now());
+          nextPubmedCall = Math.max(Date.now(), nextPubmedCall) + 400;
+          if (wait) await delay(wait, undefined, { signal });
         }
+        const response = await request(
+          name,
+          url.href,
+          {
+            headers: {
+              "User-Agent":
+                name === "Wikidata"
+                  ? `ClaimLens/1.0 (${config.wikidataContactEmail})`
+                  : "Verity/3.0 (fact checker; https://cuda-ai.vercel.app/)",
+              ...headers,
+            },
+            signal: AbortSignal.any([
+              signal,
+              AbortSignal.timeout(name === "Wikidata" ? 5000 : 10000),
+            ]),
+          },
+          signal,
+          "search_calls",
+        );
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw new Error(name + " unavailable");
+        }
+        return response;
       }
-      return results;
+      const jobs = [
+        ...(config.tavilyKey
+          ? [
+              {
+                name: "Tavily",
+                search: async (): Promise<SearchResults> => {
+                  const response = SearchResponse.safeParse(
+                    await post(
+                      "Tavily",
+                      "https://api.tavily.com/search",
+                      {
+                        query: query.slice(0, 400),
+                        search_depth: "advanced",
+                        max_results: 6,
+                        include_answer: false,
+                        include_raw_content: false,
+                        include_published_date: true,
+                        ...(excludeDomains.length ? { exclude_domains: excludeDomains } : {}),
+                      },
+                      { Authorization: `Bearer ${config.tavilyKey}` },
+                      signal,
+                      18000,
+                    ),
+                  );
+                  if (!response.success)
+                    throw new ServiceError(
+                      502,
+                      "INVALID_EVIDENCE",
+                      "The search provider returned invalid evidence.",
+                    );
+                  return response.data.results
+                    .filter((source) => source.url.length > 0)
+                    .map((source) => ({
+                      ...source,
+                      content: source.content ?? "",
+                      title: source.title ?? undefined,
+                      published_date: source.published_date ?? undefined,
+                      provider: "Tavily",
+                    }));
+                },
+              },
+            ]
+          : []),
+        ...evidenceJobs(
+          config,
+          query,
+          async (name, url, headers) => boundedJson(await get(name, url, headers)),
+          async (name, url) => boundedText(await get(name, url)),
+          wikidataCache,
+        ),
+      ];
+      const completed = await Promise.allSettled(jobs.map((job) => job.search()));
+      signal.throwIfAborted();
+      if (completed.every((item) => item.status === "rejected")) {
+        const first = completed[0];
+        if (first?.status === "rejected") throw first.reason;
+      }
+      const groups: SearchResults[] = [];
+      const merged: SearchResults = [];
+      merged.warnings = [];
+      completed.forEach((item, index) => {
+        if (item.status === "fulfilled") groups.push(item.value);
+        else
+          merged.warnings!.push(
+            jobs[index]!.name +
+              " evidence search is unavailable; other configured sources were used.",
+          );
+      });
+      for (let index = 0; index < Math.max(0, ...groups.map((group) => group.length)); index++)
+        for (const group of groups) if (group[index]) merged.push(group[index]!);
+      return merged;
     },
     async extract(url, signal) {
       // Validate and pin the article fetch ourselves; never delegate an unsafe URL.

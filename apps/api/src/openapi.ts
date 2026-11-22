@@ -14,7 +14,7 @@ export function openApi() {
   return {
     openapi: "3.0.3",
     info: {
-      title: "ClaimLens API",
+      title: "Verity API",
       version: APP_VERSION,
       description:
         "Local-first evidence verification. Persistence is explicit opt-in; results are AI-assisted.",

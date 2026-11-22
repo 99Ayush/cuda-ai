@@ -105,7 +105,7 @@ export async function fetchArticle(
             signal,
             headers: {
               Host: url.host,
-              "User-Agent": "ClaimLens/1.0 (+article verification)",
+              "User-Agent": "Verity/1.0 (+article verification)",
               Accept: "text/html,text/plain",
               "Accept-Encoding": "identity",
             },

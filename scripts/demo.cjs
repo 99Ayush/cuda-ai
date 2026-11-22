@@ -11,7 +11,7 @@ const app = createApp({
 });
 const port = Number(process.env.DEMO_PORT || 18089);
 const server = app.listen(port, "127.0.0.1", () =>
-  console.log(`ClaimLens offline demo http://localhost:${port} — simulated provider responses`),
+  console.log(`Verity offline demo http://localhost:${port} — simulated provider responses`),
 );
 for (const signal of ["SIGINT", "SIGTERM"])
   process.once(signal, () => {

@@ -16,6 +16,7 @@ import VerdictBadge from "./components/VerdictBadge";
 import { labels } from "./verdicts";
 import { downloadJson } from "./storage.ts";
 import { t } from "./messages";
+import { SourceIcon } from "./components/Polish";
 type Props = {
   result: CheckResult;
   onRecheck?: () => void;
@@ -23,45 +24,65 @@ type Props = {
   allowShare?: boolean;
   shared?: boolean;
 };
-function SourceCard({ source, index, cited }: { source: Source; index: number; cited: boolean }) {
-  const date = source.published_at || "",
-    published = Number.isFinite(Date.parse(date));
+function SourceCard({
+  source,
+  index,
+  cited,
+  quote,
+}: {
+  source: Source;
+  index: number;
+  cited: boolean;
+  quote?: string;
+}) {
+  const domain = new URL(source.url).hostname.replace(/^www\./, "");
+  const date = source.published_at || source.retrieved_at || "";
+  const validDate = Number.isFinite(Date.parse(date));
   return (
     <article className={`source-card ${cited ? "source-cited" : ""}`}>
       <a href={source.url} target="_blank" rel="noopener noreferrer">
         <div className="source-top">
-          <span className="source-index">{String(index + 1).padStart(2, "0")}</span>
-          <span className="source-publisher">{source.publisher}</span>
-          <ArrowUpRight size={16} />
+          <span className="citation-number">{index + 1}</span>
+          <SourceIcon url={source.url} />
+          <span className="source-publisher">{domain}</span>
+          <ArrowUpRight size={17} />
         </div>
         <h4>{source.title}</h4>
       </a>
-      <p>
-        {source.content.slice(0, 180)}
-        {source.content.length > 180 ? "…" : ""}
-      </p>
+      {(quote || source.quality) && (
+        <details className="source-detail">
+          <summary>
+            {quote ? "Read cited excerpt" : "Source information"}
+            <ChevronDown size={14} />
+          </summary>
+          {quote && (
+            <blockquote className="source-quote">
+              <mark>{quote}</mark>
+            </blockquote>
+          )}
+          {source.quality && <p className="source-credibility">{source.quality.explanation}</p>}
+        </details>
+      )}
       <div className="source-card-meta">
         <span className={`source-use ${cited ? "cited" : ""}`}>
-          {cited ? "Cited evidence" : "Retrieved source"}
+          {cited ? "Cited evidence" : "Additional source"}
         </span>
-        <span>{source.provider || "Tavily"}</span>
+        {validDate ? (
+          <time dateTime={date}>
+            {source.published_at ? "Published" : "Retrieved"}{" "}
+            {new Date(date).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </time>
+        ) : (
+          <span>Date unavailable</span>
+        )}
       </div>
       {source.quality && (
-        <>
-          <span className="source-quality" title={source.quality.explanation}>
-            {source.quality.tier} · {Math.round(source.quality.score * 100)}/100
-          </span>
-          <p className="confidence-note">{source.quality.explanation}</p>
-        </>
-      )}
-      <span className="source-date">
-        {published
-          ? `Published ${new Date(date).toLocaleDateString()}`
-          : "Publication date unavailable"}
-      </span>
-      {source.retrieved_at && (
-        <span className="source-date">
-          Retrieved {new Date(source.retrieved_at).toLocaleDateString()}
+        <span className="source-quality" title={source.quality.explanation}>
+          {source.quality.tier} source
         </span>
       )}
     </article>
@@ -76,16 +97,28 @@ export default function Result({
 }: Props) {
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   useEffect(() => {
+    titleRef.current?.closest(".result-panel")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
     titleRef.current?.focus({ preventScroll: true });
   }, [result.id]);
   const [copied, setCopied] = useState(false),
     [copyError, setCopyError] = useState("");
-  const { label, icon: Icon, detail } = labels[result.verdict];
+  const { label, icon: Icon } = labels[result.verdict];
   const sources = [
     ...new Map(
       result.claims.flatMap((claim) => claim.sources).map((source) => [source.url, source]),
     ).values(),
   ];
+  const sourceQuotes = new Map<string, string>();
+  result.claims.forEach((claim) =>
+    claim.evidence.forEach((evidence) => {
+      const source = claim.sources.find((item) => item.id === evidence.source_id);
+      if (source && !sourceQuotes.has(source.url)) sourceQuotes.set(source.url, evidence.quote);
+    }),
+  );
+  const covered = result.claims.filter((claim) => claim.evidence.length > 0).length;
   const single = result.claims.length === 1;
   const citedUrls = new Set(
     result.claims.flatMap((claim) =>
@@ -101,7 +134,7 @@ export default function Result({
   async function copy() {
     const text = [
       result.input,
-      `ClaimLens: ${label}`,
+      `Verity: ${label}`,
       ...result.claims.map(
         (claim) => `${labels[claim.verdict].label}: ${claim.claim}\n${claim.explanation}`,
       ),
@@ -122,16 +155,28 @@ export default function Result({
           <Icon size={28} />
         </div>
         <div>
-          <span className="eyebrow">{shared ? "SHARED READ-ONLY FINDING" : "THE FINDING"}</span>
+          <span className="eyebrow">{shared ? "Shared finding" : "Your finding"}</span>
           <h2 id="result-title" ref={titleRef} tabIndex={-1}>
             {label}
           </h2>
-          <p>{detail}</p>
         </div>
+        <dl className="evidence-overview" aria-label="Evidence overview">
+          <div>
+            <dt>Cited sources</dt>
+            <dd>{cited.length}</dd>
+          </div>
+          <div>
+            <dt>Claims with citations</dt>
+            <dd>
+              {covered}
+              <span> / {result.claims.length}</span>
+            </dd>
+          </div>
+        </dl>
       </div>
       <div className="checked-input">
         <span className="eyebrow">
-          {result.input_type === "article" ? "ARTICLE REVIEWED" : "CLAIM CHECKED"}
+          {result.input_type === "article" ? "Article reviewed" : "Claim checked"}
         </span>
         <p>{result.input}</p>
       </div>
@@ -169,7 +214,7 @@ export default function Result({
       {result.input_type === "article" && (
         <p className="article-scope">
           <FileText size={16} />
-          This review covers the selected atomic claims, rather than every statement in the article.
+          Covers the selected claims in this article.
         </p>
       )}
       <div className="claim-findings">
@@ -178,22 +223,22 @@ export default function Result({
             {!single && <div className="claim-number">{String(index + 1).padStart(2, "0")}</div>}
             <div className="claim-content">
               <div className="claim-top">
-                <h3>{single ? "Evidence for this finding" : claim.claim}</h3>
+                <h3>{single ? "What the sources say" : claim.claim}</h3>
                 {!single && <VerdictBadge verdict={claim.verdict} />}
               </div>
               {(!single || claim.explanation.trim() !== result.summary.trim()) && (
                 <p>{claim.explanation}</p>
               )}
-              <span className="evidence-strength">{claim.evidence_strength}</span>
-              {claim.confidence != null && (
-                <div className="confidence-note">
-                  <strong>Model estimate: {Math.round(claim.confidence * 100)}%</strong>
+              <details className="evidence-detail">
+                <summary>Evidence assessment</summary>
+                <p>{claim.evidence_strength}</p>
+                {typeof claim.confidence === "number" && (
                   <p>
-                    {claim.confidence_explanation ||
-                      "This is an uncalibrated model estimate, not a measured probability."}
+                    Model estimate: {Math.round(claim.confidence * 100)}%. This is uncalibrated and
+                    does not measure accuracy.
                   </p>
-                </div>
-              )}
+                )}
+              </details>
               {!claim.evidence.length && (
                 <p className="evidence-empty">
                   No cited excerpt established a supported or refuted finding.
@@ -244,7 +289,7 @@ export default function Result({
         ))}
       </div>
       {sources.length > 0 && (
-        <section className="sources-section">
+        <section className="sources-section" id={`sources-${result.id}`}>
           <div className="section-title">
             <h3>{cited.length ? "Cited sources" : "Retrieved sources"}</h3>
             <span>
@@ -258,17 +303,17 @@ export default function Result({
                 source={source}
                 index={index}
                 cited={citedUrls.has(source.url)}
+                quote={sourceQuotes.get(source.url)}
               />
             ))}
           </div>
           {additional.length > 0 && (
             <details className="sources-disclosure">
               <summary>
-                Show {additional.length} additional retrieved{" "}
-                {additional.length === 1 ? "source" : "sources"}
+                View {additional.length} other {additional.length === 1 ? "source" : "sources"}
                 <ChevronDown size={16} />
               </summary>
-              <p>These were retrieved and are not cited in the finding above.</p>
+              <p>Additional sources, not cited in the finding.</p>
               <div className="source-grid">
                 {additional.map((source, index) => (
                   <SourceCard
@@ -276,6 +321,7 @@ export default function Result({
                     source={source}
                     index={primary.length + index}
                     cited={false}
+                    quote={sourceQuotes.get(source.url) || source.excerpts?.[0]?.quote}
                   />
                 ))}
               </div>
@@ -301,7 +347,7 @@ export default function Result({
         </details>
       )}
       <div className="report-actions">
-        <p>{t("uncertainty")}</p>
+        <span className="report-action-label">Your report</span>
         <button
           className="text-button"
           onClick={() => {
@@ -323,7 +369,7 @@ export default function Result({
             {t("retry")}
           </button>
         )}
-        {!shared && onShare && (
+        {!shared && onShare && allowShare && (
           <button
             className="text-button"
             disabled={!allowShare}

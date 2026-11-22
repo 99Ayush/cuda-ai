@@ -6,11 +6,12 @@
 
 **Check claims and articles against independent web evidence.**
 
+[![Live Demo](https://img.shields.io/badge/live-demo-2f6f4f?style=for-the-badge&logo=vercel&logoColor=white)](https://verity-nine-lyart.vercel.app)
 [![CI](https://github.com/99Ayush/verity/actions/workflows/ci.yml/badge.svg)](https://github.com/99Ayush/verity/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.12-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f6f4f.svg)](LICENSE)
 
-[Source code](https://github.com/99Ayush/verity) · [Report a bug](https://github.com/99Ayush/verity/issues) · [Request a feature](https://github.com/99Ayush/verity/issues)
+[Live demo](https://verity-nine-lyart.vercel.app) · [Source code](https://github.com/99Ayush/verity) · [Report a bug](https://github.com/99Ayush/verity/issues) · [Request a feature](https://github.com/99Ayush/verity/issues)
 
 </div>
 
@@ -19,6 +20,8 @@
 Verity is an evidence-first fact-checking workspace. Paste a claim or a public article URL. Verity retrieves web sources with Tavily, asks Gemini to compare the retrieved evidence with the claim, and returns a finding with **exact quoted excerpts** and links to the original pages.
 
 It does **not** turn “no evidence found” into “false”, and it does **not** invent citations. Every cited source ID and quotation is checked against retrieved content. AI judgments can still be wrong — open the sources and judge their relevance.
+
+**Try it:** <https://verity-nine-lyart.vercel.app>
 
 ---
 

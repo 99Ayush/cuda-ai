@@ -80,7 +80,7 @@ export default function App() {
     const changed = (event: StorageEvent) => {
       if (
         event.key === null ||
-        ["verity-checks-v1", "claimlens-checks-v1", "cuda-ai-checks-v3"].includes(event.key)
+        ["verity-checks-v1", "claimlens-checks-v1"].includes(event.key)
       )
         setHistory(readHistory());
     };

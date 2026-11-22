@@ -375,7 +375,7 @@ export function createProviders(
               "User-Agent":
                 name === "Wikidata"
                   ? `Verity/1.0 (${config.wikidataContactEmail})`
-                  : "Verity/3.0 (fact checker; https://cuda-ai.vercel.app/)",
+                  : "Verity/3.0 (fact checker; https://github.com/99Ayush/verity)",
               ...headers,
             },
             signal: AbortSignal.any([

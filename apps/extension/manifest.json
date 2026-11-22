@@ -5,7 +5,7 @@
   "minimum_chrome_version": "116",
   "description": "Select an area on a web page to automatically read its claim and check supporting evidence.",
   "permissions": ["activeTab", "tabs", "scripting", "storage", "sidePanel", "contextMenus"],
-  "host_permissions": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
   "optional_host_permissions": ["https://*/*"],
   "background": {
     "service_worker": "background.js"
@@ -22,7 +22,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://cuda-ai.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
       "js": ["bridge.js"]
     }
   ],

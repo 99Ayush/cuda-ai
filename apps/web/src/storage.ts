@@ -1,7 +1,7 @@
 import { validResult, ResultSchema, type Result } from "@verity/shared";
 export { validResult };
 export const HISTORY_KEY = "verity-checks-v1";
-const LEGACY_HISTORY_KEYS = ["claimlens-checks-v1", "cuda-ai-checks-v3"];
+const LEGACY_HISTORY_KEYS = ["claimlens-checks-v1"];
 type BrowserStorage = Pick<Storage, "getItem" | "setItem">;
 function defaultStorage(): BrowserStorage | null {
   try {

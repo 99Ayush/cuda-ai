@@ -15,7 +15,7 @@
 
 </div>
 
-![Verity evidence desk](apps/web/public/og-verity.png)
+![The Verity evidence desk: a claim check with a verdict, quoted source excerpts and linked citations](docs/screenshots/evidence-desk.png)
 
 Verity is an evidence-first fact-checking workspace. Paste a claim or a public article URL. Verity retrieves web sources with Tavily, asks Gemini to compare the retrieved evidence with the claim, and returns a finding with **exact quoted excerpts** and links to the original pages.
 

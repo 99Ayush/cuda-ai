@@ -2,6 +2,11 @@
   "name": "verity",
   "version": "3.0.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/99Ayush/verity.git"
+  },
+  "homepage": "https://cuda-ai.vercel.app/",
   "workspaces": [
     "apps/api",
     "apps/web",

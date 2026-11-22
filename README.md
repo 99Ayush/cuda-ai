@@ -6,11 +6,11 @@
 
 **Check claims and articles against independent web evidence.**
 
-[![CI](https://github.com/99Ayush/cuda-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/99Ayush/cuda-ai/actions/workflows/ci.yml)
+[![CI](https://github.com/99Ayush/verity/actions/workflows/ci.yml/badge.svg)](https://github.com/99Ayush/verity/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.12-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f6f4f.svg)](LICENSE)
 
-[Live demo](https://cuda-ai.vercel.app/) · [Report a bug](https://github.com/99Ayush/cuda-ai/issues) · [Request a feature](https://github.com/99Ayush/cuda-ai/issues)
+[Live demo](https://cuda-ai.vercel.app/) · [Report a bug](https://github.com/99Ayush/verity/issues) · [Request a feature](https://github.com/99Ayush/verity/issues)
 
 </div>
 
@@ -20,7 +20,7 @@ Verity is an evidence-first fact-checking workspace. Paste a claim or a public a
 
 It does **not** turn “no evidence found” into “false”, and it does **not** invent citations. Every cited source ID and quotation is checked against retrieved content. AI judgments can still be wrong — open the sources and judge their relevance.
 
-> The GitHub repository is named `cuda-ai` for historical reasons. The product is **Verity**.
+> The Vercel deployment still uses the historical `cuda-ai.vercel.app` hostname. The product and repository are now **Verity**.
 
 ---
 
@@ -53,8 +53,8 @@ Most “AI fact-checkers” are confident text generators. Verity is built aroun
 Use **Node.js 22.12 or newer**.
 
 ```sh
-git clone https://github.com/99Ayush/cuda-ai.git
-cd cuda-ai
+git clone https://github.com/99Ayush/verity.git
+cd verity
 npm ci
 cp .env.example .env
 ```

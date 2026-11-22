@@ -10,7 +10,7 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.12-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f6f4f.svg)](LICENSE)
 
-[Live demo](https://cuda-ai.vercel.app/) · [Report a bug](https://github.com/99Ayush/verity/issues) · [Request a feature](https://github.com/99Ayush/verity/issues)
+ · [Report a bug](https://github.com/99Ayush/verity/issues) · [Request a feature](https://github.com/99Ayush/verity/issues)
 
 </div>
 

@@ -22,11 +22,11 @@ The service must run locally (`npm run dev`, `npm start`), as a Vercel serverles
 
 ## Consequences
 
-- `npm run check` is a meaningful gate: typecheck, 77 Node tests, lint and a full production build all exercise the same compiled runtime.
+- `npm run check` is a meaningful gate: typecheck, 114 Node tests, lint and a full production build all exercise the same compiled runtime.
 - Vercel's proxy topology is trusted for IP detection only in Vercel mode; local clients cannot spoof their apparent IP.
 - The Docker image is defined but unverified on this host (no Docker/Podman/WSL). The Playwright suite runs locally and in CI; the real-provider benchmark still needs credentials.
 - The 968-line `Dashboard.tsx` is known technical debt. It is covered by E2E tests but should be split into focused components before adding more view-level features.
 
 ## Verification
 
-`apps/api/src/app.ts`, `apps/api/src/store.ts`, `packages/shared/src/index.ts`, `scripts/dev.js`, `scripts/build-extension.js`, `.github/workflows/ci.yml`, `docs/UPGRADE_STATUS.md`.
+`apps/api/src/app.ts`, `apps/api/src/store.ts`, `packages/shared/src/index.ts`, `scripts/dev.js`, `scripts/build-extension.js`, `.github/workflows/ci.yml`.

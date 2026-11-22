@@ -26,7 +26,7 @@ We needed a pipeline where the language model proposes an analysis, but the serv
 ## Consequences
 
 - The system is conservative: it abstains more often than a model-only approach and can be slower due to multiple searches and one repair attempt.
-- Policy code is a meaningful part of the codebase and must be tested directly; 77 Node tests include dedicated abstention, citation-invention and quote-tampering cases, including property-based tests via `fast-check`.
+- Policy code is a meaningful part of the codebase and must be tested directly; 114 Node tests include dedicated abstention, citation-invention and quote-tampering cases, including property-based tests via `fast-check`.
 - Accuracy is **not measured** against the FEVER-derived dataset yet. Dataset integrity is checked offline by `npm run eval:validate`; a real-provider baseline remains required before any accuracy claim.
 
 ## Verification

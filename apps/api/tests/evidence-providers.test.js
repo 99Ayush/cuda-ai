@@ -47,7 +47,7 @@ test("Wikidata supplies entity labels and structured statements, ignoring deprec
       const url = new URL(endpoint);
       if (endpoint.includes("tavily")) return Response.json({ results: [] });
       wikiCalls++;
-      assert.equal(options.headers["User-Agent"], "ClaimLens/1.0 (test@example.org)");
+      assert.equal(options.headers["User-Agent"], "Verity/1.0 (test@example.org)");
       if (url.searchParams.get("action") === "wbsearchentities")
         return Response.json({ search: [{ id: "Q937", label: "Albert Einstein" }] });
       if (url.searchParams.get("props") === "labels")

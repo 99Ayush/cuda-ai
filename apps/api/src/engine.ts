@@ -9,7 +9,7 @@ import {
   type Result,
   type CheckInput,
   type Stage,
-} from "@claimlens/shared";
+} from "@verity/shared";
 import { ServiceError } from "./errors";
 import { resolveConfig, type EngineConfig } from "./config";
 import { publicUrl } from "./url";

@@ -11,12 +11,11 @@ import {
   RefreshCw,
   Share2,
 } from "lucide-react";
-import type { Result as CheckResult, Source } from "@claimlens/shared";
-import VerdictBadge from "./components/VerdictBadge";
-import { labels } from "./verdicts";
+import type { Result as CheckResult, Source } from "@verity/shared";
+import { SourceIcon, VerdictBadge } from "./components/ui";
+import { labels } from "./types";
 import { downloadJson } from "./storage.ts";
 import { t } from "./messages";
-import { SourceIcon } from "./components/Polish";
 type Props = {
   result: CheckResult;
   onRecheck?: () => void;
@@ -358,7 +357,7 @@ export default function Result({
         </button>
         <button
           className="text-button"
-          onClick={() => downloadJson(result, `claimlens-check-${result.id}.json`)}
+          onClick={() => downloadJson(result, `verity-check-${result.id}.json`)}
         >
           <Download size={15} />
           Download

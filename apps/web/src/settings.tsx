@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Download, Puzzle, RefreshCw, Shield, Globe2, Sparkles } from "lucide-react";
 import { z } from "zod";
-import type { Health } from "@claimlens/shared";
-import type { Appearance } from "./hooks/feedback";
-import { evidenceProviders } from "./provider-catalog";
+import type { Health } from "@verity/shared";
+import type { Appearance } from "./hooks";
+import { evidenceProviders } from "./types";
 const ExtensionStatus = z.object({
   installed: z.boolean(),
   version: z.string(),

@@ -1,5 +1,5 @@
 {
-  "name": "@claimlens/api",
+  "name": "@verity/api",
   "version": "3.0.0",
   "private": true,
   "main": "index.js",
@@ -20,6 +20,6 @@
     "jsdom": "^31.0.1",
     "tldts": "^7.5.5",
     "pg": "^8.23.1",
-    "@claimlens/shared": "*"
+    "@verity/shared": "*"
   }
 }

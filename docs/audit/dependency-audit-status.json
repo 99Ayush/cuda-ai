@@ -1,6 +1,0 @@
-{
-  "status": "unverified",
-  "command": "npm audit --json",
-  "reason": "The automatic permission approval review timed out before starting the command, on the original attempt and its permitted retry.",
-  "vulnerability_count": null
-}

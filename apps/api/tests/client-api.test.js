@@ -16,7 +16,7 @@ const source = ts.transpileModule(
     .readFileSync(path.resolve(__dirname, "../../../apps/web/src/api.ts"), "utf8")
     .replace("import.meta.env", "{}")
     .replace('"zod"', resolve("zod"))
-    .replace('"@claimlens/shared"', resolve("@claimlens/shared")),
+    .replace('"@verity/shared"', resolve("@verity/shared")),
   {
     compilerOptions: {
       module: ts.ModuleKind.ESNext,

@@ -8,7 +8,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
-import { APP_VERSION, ResultSchema, type Result } from "@claimlens/shared";
+import { APP_VERSION, ResultSchema, type Result } from "@verity/shared";
 import { loadConfig, resolveConfig, type EngineConfig } from "./config";
 import { createProviders } from "./providers";
 import { createMockProviders } from "./mock";
@@ -77,7 +77,7 @@ export function createApp(options: AppOptions = {}) {
     if (req.path.startsWith("/api") || ["/health", "/history", "/analyze-claim"].includes(req.path))
       res.set("Cache-Control", "no-store");
     res.on("finish", () => {
-      metrics.increment("claimlens_requests_total", `{status="${res.statusCode}"}`);
+      metrics.increment("verity_requests_total", `{status="${res.statusCode}"}`);
       if (!config.demo)
         console.log(
           JSON.stringify({
@@ -231,9 +231,9 @@ export function createApp(options: AppOptions = {}) {
         res.end();
       } else res.json(result);
     } catch (error) {
-      metrics.increment("claimlens_check_errors_total");
+      metrics.increment("verity_check_errors_total");
       if (error instanceof ServiceError && /^(PROVIDER_|CIRCUIT_)/.test(error.code))
-        metrics.increment("claimlens_provider_errors_total", `{code="${error.code}"}`);
+        metrics.increment("verity_provider_errors_total", `{code="${error.code}"}`);
       if (ctx.signal.aborted && res.destroyed) return;
       if (stream && res.headersSent) {
         const failure =

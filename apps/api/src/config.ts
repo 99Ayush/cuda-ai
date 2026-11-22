@@ -1,7 +1,7 @@
 import path from "node:path";
 import dotenv from "dotenv";
 import { z } from "zod";
-import { VERITY_EXTENSION_ID } from "@claimlens/shared";
+import { VERITY_EXTENSION_ID } from "@verity/shared";
 
 const integer = (fallback: number, min: number, max: number) =>
   z.coerce.number().int().min(min).max(max).default(fallback);
@@ -49,7 +49,7 @@ export const ConfigSchema = z.object({
   inputPricePerMillion: z.coerce.number().nonnegative().optional(),
   outputPricePerMillion: z.coerce.number().nonnegative().optional(),
   databaseUrl: z.string().default(""),
-  databasePath: z.string().default("data/claimlens.sqlite"),
+  databasePath: z.string().default("data/verity.sqlite"),
   persistenceEnabled: z.boolean().default(false),
   stage: z.enum(["development", "staging", "production"]).default("development"),
 });
@@ -114,7 +114,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     inputPricePerMillion: env.INPUT_PRICE_PER_MILLION,
     outputPricePerMillion: env.OUTPUT_PRICE_PER_MILLION,
     databaseUrl: env.DATABASE_URL || "",
-    databasePath: env.DATABASE_PATH || "data/claimlens.sqlite",
+    databasePath: env.DATABASE_PATH || "data/verity.sqlite",
     persistenceEnabled: boolean(env.PERSISTENCE_ENABLED),
     stage: env.APP_ENV || "development",
   });

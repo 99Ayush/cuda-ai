@@ -1,4 +1,4 @@
-import type { Stage } from "@claimlens/shared";
+import type { Stage } from "@verity/shared";
 export type SearchResult = {
   url: string;
   title?: string;

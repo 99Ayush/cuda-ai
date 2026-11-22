@@ -1,6 +1,9 @@
 import type { Dispatch, SetStateAction, RefObject, FormEvent } from "react";
-import type { Result, Health, ProgressEvent, Verdict } from "@claimlens/shared";
+import { CheckCircle2, XCircle, GitCompareArrows, CircleHelp, type LucideIcon } from "lucide-react";
+import type { Result, Health, ProgressEvent, Verdict } from "@verity/shared";
+
 export type View = "check" | "history" | "stats" | "settings";
+
 export type DashboardProps = {
   view: View;
   setView: Dispatch<SetStateAction<View>>;
@@ -35,3 +38,50 @@ export type DashboardProps = {
   onShare: () => Promise<void>;
   shared: boolean;
 };
+
+export const labels: Record<Verdict, { label: string; icon: LucideIcon; detail: string }> = {
+  TRUE: {
+    label: "Supported",
+    icon: CheckCircle2,
+    detail: "The retrieved evidence supports this claim.",
+  },
+  FALSE: {
+    label: "Refuted",
+    icon: XCircle,
+    detail: "The retrieved evidence contradicts this claim.",
+  },
+  MIXED: {
+    label: "Mixed findings",
+    icon: GitCompareArrows,
+    detail: "The evidence is conflicting or not every component was established.",
+  },
+  UNVERIFIED: {
+    label: "Unverified",
+    icon: CircleHelp,
+    detail: "The available evidence does not establish this claim.",
+  },
+};
+
+export function evidenceProviders(health: Health) {
+  const configured = health.configured;
+  return [
+    {
+      name: "Tavily",
+      enabled: configured?.tavily ?? configured?.evidence ?? false,
+      detail: "Web evidence",
+      missing: "Key needed",
+    },
+    {
+      name: "PubMed",
+      enabled: configured?.pubmed ?? false,
+      detail: "Health and medical claims",
+      missing: "Disabled",
+    },
+    {
+      name: "Wikidata",
+      enabled: configured?.wikidata ?? false,
+      detail: "Named entities and structured facts",
+      missing: "Disabled",
+    },
+  ];
+}

@@ -1,5 +1,5 @@
 import { getDomain } from "tldts";
-import type { Source, Finding } from "@claimlens/shared";
+import type { Source, Finding } from "@verity/shared";
 import reputation from "./source-quality.json";
 import { publicUrl } from "./url";
 import type { SearchResult } from "./types";

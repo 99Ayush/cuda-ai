@@ -1,4 +1,4 @@
-const { ResultSchema } = require("@claimlens/shared");
+const { ResultSchema } = require("@verity/shared");
 function scoreResult(item, value, success) {
   const parsed = ResultSchema.safeParse(value);
   if (!parsed.success)

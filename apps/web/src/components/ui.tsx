@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
 import { Check, CheckCircle2, CircleAlert, LoaderCircle, X } from "lucide-react";
-import type { ToastItem } from "../hooks/feedback";
-import type { ProgressEvent } from "@claimlens/shared";
+import type { ToastItem } from "../hooks";
+import type { ProgressEvent, Verdict } from "@verity/shared";
+import { labels } from "../types";
+
+export function VerdictBadge({ verdict }: { verdict: Verdict }) {
+  const { label, icon: Icon } = labels[verdict];
+  return (
+    <span className={`verdict-badge verdict-${verdict.toLowerCase()}`}>
+      <Icon size={15} />
+      {label}
+    </span>
+  );
+}
 
 function Toast({ item, dismiss }: { item: ToastItem; dismiss: (id: number) => void }) {
   useEffect(() => {

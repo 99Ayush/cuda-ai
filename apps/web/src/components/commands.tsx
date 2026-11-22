@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { X } from "lucide-react";
 import type { View } from "../types";
-import { useModalDialog } from "../hooks/dialog";
+import { useModalDialog } from "../hooks";
 export default function Commands({
   onClose,
   onView,

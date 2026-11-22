@@ -6,11 +6,11 @@ const { config, providers } = require("./helpers.js");
 // typed source is transpiled here so the test always exercises the shipped module
 // instead of a hand-maintained JavaScript copy.
 const sharedUrl = JSON.stringify(
-  require("node:url").pathToFileURL(require.resolve("@claimlens/shared")).href,
+  require("node:url").pathToFileURL(require.resolve("@verity/shared")).href,
 );
 const storageSource = require("node:fs")
   .readFileSync(require("node:path").resolve(__dirname, "../../../apps/web/src/storage.ts"), "utf8")
-  .replace('"@claimlens/shared"', sharedUrl);
+  .replace('"@verity/shared"', sharedUrl);
 const storageJs = require("typescript").transpileModule(storageSource, {
   compilerOptions: {
     module: require("typescript").ModuleKind.ESNext,

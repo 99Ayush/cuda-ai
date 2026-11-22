@@ -374,7 +374,7 @@ export function createProviders(
             headers: {
               "User-Agent":
                 name === "Wikidata"
-                  ? `ClaimLens/1.0 (${config.wikidataContactEmail})`
+                  ? `Verity/1.0 (${config.wikidataContactEmail})`
                   : "Verity/3.0 (fact checker; https://cuda-ai.vercel.app/)",
               ...headers,
             },

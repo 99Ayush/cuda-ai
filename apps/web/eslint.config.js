@@ -7,7 +7,7 @@ const { defineConfig, globalIgnores } = require("eslint/config");
 const tsParser = require("@typescript-eslint/parser");
 const tsPlugin = require("@typescript-eslint/eslint-plugin");
 module.exports = defineConfig([
-  globalIgnores(["dist", "node_modules", "public/claimlens-extension"]),
+  globalIgnores(["dist", "node_modules", "public/verity-extension"]),
   {
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     extends: [

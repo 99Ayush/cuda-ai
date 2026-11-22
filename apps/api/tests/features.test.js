@@ -8,7 +8,7 @@ const { normalizeSources, validateAnalysis } = require("../../../apps/api/dist/e
 const image =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/R6sAAAAASUVORK5CYII=";
 test("production permits the shipped extension identity and rejects other origins", async (t) => {
-  const { VERITY_EXTENSION_ID } = require("@claimlens/shared");
+  const { VERITY_EXTENSION_ID } = require("@verity/shared");
   const base = await server(t, {
     config: { ...config, production: true },
     providers: providers({

@@ -6,7 +6,7 @@ import {
   HealthSchema,
   ScreenSchema,
   APP_VERSION,
-} from "@claimlens/shared";
+} from "@verity/shared";
 const json = (schema: z.ZodType) => ({
   "application/json": { schema: z.toJSONSchema(schema, { target: "openapi-3.0" }) },
 });

@@ -7,7 +7,7 @@ module.exports = async () => {
     plugins: [react()],
     resolve: {
       alias: {
-        "@claimlens/shared": require("node:path").resolve(
+        "@verity/shared": require("node:path").resolve(
           __dirname,
           "../../packages/shared/src/index.ts",
         ),

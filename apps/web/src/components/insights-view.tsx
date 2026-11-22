@@ -1,8 +1,7 @@
 import { ArrowRight } from "lucide-react";
-import type { Result } from "@claimlens/shared";
-import VerdictBadge from "./VerdictBadge";
-import { EmptyArtwork } from "./Polish";
-import { labels } from "../verdicts";
+import type { Result } from "@verity/shared";
+import { EmptyArtwork, VerdictBadge } from "./ui";
+import { labels } from "../types";
 
 function dayKey(value: Date) {
   return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;

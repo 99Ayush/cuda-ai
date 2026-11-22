@@ -1,5 +1,5 @@
 {
-  "name": "@claimlens/web",
+  "name": "@verity/web",
   "version": "3.0.0",
   "private": true,
   "type": "commonjs",
@@ -17,7 +17,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "zod": "^4.6.7",
-    "@claimlens/shared": "*"
+    "@verity/shared": "*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

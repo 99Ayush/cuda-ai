@@ -1,7 +1,7 @@
-import { validResult, ResultSchema, type Result } from "@claimlens/shared";
+import { validResult, ResultSchema, type Result } from "@verity/shared";
 export { validResult };
-export const HISTORY_KEY = "claimlens-checks-v1";
-const LEGACY_HISTORY_KEY = "cuda-ai-checks-v3";
+export const HISTORY_KEY = "verity-checks-v1";
+const LEGACY_HISTORY_KEYS = ["claimlens-checks-v1", "cuda-ai-checks-v3"];
 type BrowserStorage = Pick<Storage, "getItem" | "setItem">;
 function defaultStorage(): BrowserStorage | null {
   try {
@@ -23,7 +23,9 @@ function normalized(values: unknown[]): Result[] {
 export function readHistory(storage: BrowserStorage | null = defaultStorage()): Result[] {
   try {
     const data: unknown = JSON.parse(
-      storage?.getItem(HISTORY_KEY) ?? storage?.getItem(LEGACY_HISTORY_KEY) ?? "[]",
+      storage?.getItem(HISTORY_KEY) ??
+        LEGACY_HISTORY_KEYS.map((key) => storage?.getItem(key)).find(Boolean) ??
+        "[]",
     );
     return Array.isArray(data) ? normalized(data) : [];
   } catch {
@@ -70,7 +72,7 @@ export function downloadCsv(history: Result[]): void {
   ]);
   download(
     [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n"),
-    "claimlens-history.csv",
+    "verity-history.csv",
     "text/csv;charset=utf-8",
   );
 }

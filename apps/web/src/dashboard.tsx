@@ -12,21 +12,17 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import type { Health, Result as CheckResult } from "@claimlens/shared";
-import type { DashboardProps } from "./types";
-import Settings from "./Settings";
-import HistoryView from "./components/HistoryView";
-import InsightsView from "./components/InsightsView";
-import { ProgressSkeleton } from "./components/Polish";
-import { useAppearance } from "./hooks/feedback";
-import { useModalDialog } from "./hooks/dialog";
-import { evidenceProviders } from "./provider-catalog";
-import { APP_VERSION } from "@claimlens/shared";
-import VerdictBadge from "./components/VerdictBadge";
-import Commands from "./components/Commands";
-import { labels } from "./verdicts";
+import type { Health, Result as CheckResult } from "@verity/shared";
+import { APP_VERSION } from "@verity/shared";
+import { evidenceProviders, labels, type DashboardProps } from "./types";
+import Settings from "./settings";
+import HistoryView from "./components/history-view";
+import InsightsView from "./components/insights-view";
+import { ProgressSkeleton, VerdictBadge } from "./components/ui";
+import { useAppearance, useModalDialog } from "./hooks";
+import Commands from "./components/commands";
 import { t } from "./messages";
-const Result = lazy(() => import("./Result.tsx"));
+const Result = lazy(() => import("./result.tsx"));
 
 function NavItem({
   icon: Icon,

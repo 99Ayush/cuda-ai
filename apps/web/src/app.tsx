@@ -15,12 +15,12 @@ import {
   type ProgressEvent,
   type Verdict,
   type CheckInput,
-} from "@claimlens/shared";
+} from "@verity/shared";
 import { apiRequest, streamCheck } from "./api.ts";
 import { readHistory, saveHistory, importHistory } from "./storage.ts";
-import Dashboard from "./Dashboard";
-import { ToastStack } from "./components/Polish";
-import { useToasts } from "./hooks/feedback";
+import Dashboard from "./dashboard";
+import { ToastStack } from "./components/ui";
+import { useToasts } from "./hooks";
 import type { View } from "./types";
 function incomingClaim(): string {
   try {
@@ -78,7 +78,10 @@ export default function App() {
       void checkHealth();
     }, 60000);
     const changed = (event: StorageEvent) => {
-      if (event.key === null || ["claimlens-checks-v1", "cuda-ai-checks-v3"].includes(event.key))
+      if (
+        event.key === null ||
+        ["verity-checks-v1", "claimlens-checks-v1", "cuda-ai-checks-v3"].includes(event.key)
+      )
         setHistory(readHistory());
     };
     window.addEventListener("storage", changed);

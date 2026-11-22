@@ -1,10 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, Download, Search, Trash2, X, Link2 } from "lucide-react";
-import type { Result, Verdict } from "@claimlens/shared";
-import type { DashboardProps } from "../types";
-import VerdictBadge from "./VerdictBadge";
-import { EmptyArtwork } from "./Polish";
-import { labels } from "../verdicts";
+import type { Result, Verdict } from "@verity/shared";
+import { labels, type DashboardProps } from "../types";
+import { EmptyArtwork, VerdictBadge } from "./ui";
 import { t } from "../messages";
 import { downloadJson, downloadCsv } from "../storage";
 type HistorySort = "newest" | "oldest" | "sources";
@@ -110,7 +108,7 @@ export default function HistoryView({
               className="text-button"
               disabled={!history.length}
               onClick={(event) => {
-                downloadJson(history, "claimlens-history.json");
+                downloadJson(history, "verity-history.json");
                 event.currentTarget.closest("details")?.removeAttribute("open");
               }}
             >

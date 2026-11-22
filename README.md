@@ -1,110 +1,287 @@
+<div align="center">
+
+<img src="apps/web/public/verity-logo.png" alt="Verity" width="76" />
+
 # Verity
 
-A fact-checking website for claims and public articles. It retrieves web evidence with Tavily and uses Gemini to compare that evidence with the claim. Findings use the contract values **TRUE**, **FALSE**, **MIXED**, or **UNVERIFIED** (shown in the UI as Supported, Refuted, Mixed findings, or Unverified), with exact source excerpts and links.
+**Check claims and articles against independent web evidence.**
 
-The website does not generate a true/false verdict from keywords or the absence of evidence. Every cited source ID and quotation is checked against retrieved content. AI judgments can still be wrong; users should read the original sources.
+[![CI](https://github.com/99Ayush/cuda-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/99Ayush/cuda-ai/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522.12-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f6f4f.svg)](LICENSE)
 
-## Run locally
+[Live demo](https://cuda-ai.vercel.app/) · [Report a bug](https://github.com/99Ayush/cuda-ai/issues) · [Request a feature](https://github.com/99Ayush/cuda-ai/issues)
 
-Use Node.js 22.12 or newer. From the repository root:
+</div>
+
+![Verity evidence desk](apps/web/public/og-verity.png)
+
+Verity is an evidence-first fact-checking workspace. Paste a claim or a public article URL. Verity retrieves web sources with Tavily, asks Gemini to compare the retrieved evidence with the claim, and returns a finding with **exact quoted excerpts** and links to the original pages.
+
+It does **not** turn “no evidence found” into “false”, and it does **not** invent citations. Every cited source ID and quotation is checked against retrieved content. AI judgments can still be wrong — open the sources and judge their relevance.
+
+> The GitHub repository is named `cuda-ai` for historical reasons. The product is **Verity**.
+
+---
+
+## Why Verity
+
+Most “AI fact-checkers” are confident text generators. Verity is built around a narrower, more defensible contract:
+
+- **Evidence before verdict.** A finding is grounded in retrieved sources, not in model memory.
+- **Deterministic abstention.** No usable evidence becomes **Unverified**, never a fabricated true/false.
+- **Verbatim citations.** Quoted excerpts must match the retrieved source text.
+- **Readable reasoning.** Results lead with evidence and source links, not an uncalibrated confidence score.
+- **Private by default.** History stays in the browser; provider keys stay on the server.
+
+## Features
+
+| Area | What you get |
+| --- | --- |
+| Claim checks | One specific claim, 8–2,000 characters, checked against independent web sources |
+| Article checks | Extract a public article, select up to three factual claims, and check each one |
+| Findings | Supported, Refuted, Mixed findings, or Unverified — with source excerpts and links |
+| Evidence controls | Duplicate and unsafe URLs removed; unknown source IDs and non-matching quotes rejected |
+| Local history | Up to 50 reports in `localStorage`, searchable, filterable, exportable to JSON/CSV, importable |
+| Activity view | Check volume, citation coverage, verdict distribution, and average latency |
+| Accessibility | Keyboard shortcuts, focus-trapped dialogs, skip link, reduced-motion support |
+| Extension | Optional Chrome/Edge side panel for checking text or a screen selection |
+| Demo mode | Deterministic fixture responses for UI review without provider credentials |
+
+## Quick start
+
+Use **Node.js 22.12 or newer**.
 
 ```sh
+git clone https://github.com/99Ayush/cuda-ai.git
+cd cuda-ai
 npm ci
+cp .env.example .env
+```
+
+Add your server-side keys to `.env`:
+
+```dotenv
+GEMINI_API_KEY=your_gemini_key
+TAVILY_API_KEY=your_tavily_key
+```
+
+Then run the development servers:
+
+```sh
 npm run dev
 ```
 
-The UI opens at http://localhost:5173. The API listens on port 8080, and Vite proxies /api requests to it. To serve the built website with Node:
+- UI: <http://localhost:5173>
+- API: <http://localhost:8080>
+- Vite proxies `/api` to the API.
+
+To serve the production build with Node:
 
 ```sh
 npm run build
 npm start
 ```
 
-The built website is then available at http://localhost:8080.
+- App: <http://localhost:8080>
 
-To review the interface without provider credentials, run `npm run build` followed by `npm run preview:test`. Open http://127.0.0.1:18089. This local-only preview uses controlled provider fixtures and displays a test-data banner; it does not perform live fact checks. It exercises claim and article results, missing evidence, unreadable articles, provider errors and cancellation. Example fixture inputs include `no evidence for this claim`, `provider unavailable for this claim`, `provider quota for this claim`, and `slow check for this claim`.
+### No API keys? Use the offline demo
 
-Configure GEMINI*API_KEY and TAVILY_API_KEY in your environment. The server also loads local .env files at the repository root, apps/api, or apps/web; existing environment variables take precedence. The root .env.example documents the configuration. Do not put provider secrets in VITE* variables or commit them.
+```sh
+npm run build
+npm run preview:test
+```
 
-| Setting         | Purpose                                                                               |
-| --------------- | ------------------------------------------------------------------------------------- |
-| GEMINI_API_KEY  | Required server-side Gemini credential                                                |
-| TAVILY_API_KEY  | Required server-side Tavily credential                                                |
-| GEMINI_MODEL    | Optional model override; defaults to gemini-3.5-flash-lite                            |
-| PORT            | Local backend port; defaults to 8080. The default dev proxy expects 8080.             |
-| ALLOWED_ORIGINS | Optional comma-separated origins for a separately hosted UI                           |
-| VITE_API_URL    | Optional API origin for a separately hosted UI; omit for same-origin Vercel/local use |
+Open <http://127.0.0.1:18089>. The preview uses controlled provider fixtures and shows a test-data banner. It exercises claim and article results, missing evidence, unreadable articles, provider errors, and cancellation. It does **not** perform live fact checks.
 
-Gemini 2.5 Flash is deprecated and is limited to existing users until December 1, 2026. The default uses its documented successor. See [Google's model guidance](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash).
+Example fixture inputs: `no evidence for this claim`, `provider unavailable for this claim`, `provider quota for this claim`, `slow check for this claim`.
 
-## Deploy on Vercel
+## Configuration
 
-Connect the GitHub repository to your existing Vercel project. Both the **repository root** and **apps/web** are supported project root directories. Their vercel.json files build the Vite UI and route API requests to the same serverless Express handler.
+The server loads `.env` from the repository root, `apps/api`, or `apps/web`. Existing environment variables take precedence.
 
-- Add GEMINI_API_KEY and TAVILY_API_KEY as server-side environment variables. Enable them for the environments you intend to test: Preview and Production.
-- Use Vite as the framework preset and a supported Node version of 22 or later.
-- For repository-root deployments, the output directory is apps/web/dist. For apps/web deployments, it is dist.
-- Remove old project-level command/output overrides if they contradict the committed configuration.
-- Redeploy after changing environment variables. Existing deployments do not receive new values automatically.
-- Verify /api/health and submit a real claim after deployment. A health response of ready confirms configuration presence, not provider credentials or available quota.
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | Yes (live checks) | Server-side Gemini credential |
+| `TAVILY_API_KEY` | Yes (live checks) | Server-side Tavily credential |
+| `GEMINI_MODEL` | No | Model override; defaults to `gemini-3.5-flash-lite` |
+| `GEMINI_FALLBACK_MODEL` | No | Fallback model for busy/unavailable primary models |
+| `PORT` | No | API port; defaults to `8080` |
+| `HOST` | No | API bind address; defaults to `127.0.0.1` |
+| `ALLOWED_ORIGINS` | No | Comma-separated origins for a separately hosted UI |
+| `VITE_API_URL` | No | API origin for a separately hosted UI; omit for same-origin |
+| `DEMO_MODE` | No | Use deterministic fixtures instead of live providers |
+| `PERSISTENCE_ENABLED` | No | Enable optional server-side persistence |
+| `DATABASE_PATH` | No | SQLite path when persistence is enabled |
+| `PUBMED_ENABLED` | No | Route health claims to PubMed abstracts |
+| `WIKIDATA_ENABLED` | No | Ground named entities through Wikidata |
 
-The server lives inside apps/api/src so a Vercel project rooted at apps/web can trace all its runtime sources. apps/api/index.js remains the local Node entry point. The root and frontend API adapters share the same implementation.
+Never put provider secrets in `VITE_*` variables. Vite exposes those to the browser.
 
-## Behavior and privacy
+## How it works
 
-- **Claim checks:** accept one specific claim, 8–2,000 characters.
-- **Article checks:** Tavily extracts public article text. Gemini selects up to three key factual claims, which are searched and checked separately. The input publisher is excluded from evidence searches to avoid circular confirmation.
-- **Evidence:** duplicate and unsafe URLs are removed. Invalid model fields are rejected; invented source IDs and non-matching quotes cannot establish a verdict.
-- **Uncertainty:** no evidence yields Unverified. Provider outages, quota failures and invalid output produce clear retryable errors; they do not become fabricated findings.
-- **History:** up to 50 validated reports are stored in this browser's localStorage, with search, individual deletion, clearing and JSON export. There is no account or cross-device synchronization. Anyone using this browser profile can see its history.
-- **Provider processing:** claim text and extracted article text are sent to Tavily and Gemini as part of analysis. The application does not keep a global server history or log submitted text/API keys.
-- **Security:** same-origin API access by default, bounded JSON input, public-domain URL validation, safe citation links and safe JSON errors. The backend resolves and pins public article addresses, checks redirects, and bounds downloaded and decompressed content before extraction.
-- **Usage limits:** 10 checks per minute per IP per function instance. Vercel's proxy topology is trusted only when running on Vercel; local clients cannot choose their apparent IP. For substantial public traffic, configure shared rate limits, Vercel Firewall and provider spending limits.
-- **Provider availability:** temporary network failures and upstream 408/500/502/503/504 responses are retried once within the existing deadline. Busy, unavailable or timed-out Gemini models can use configured fallbacks with the same evidence. Authentication and quota failures return explicit errors without retries or model switching.
-- **Scope:** text and article fact checking, plus extraction of visible claims from screenshots. Image authenticity, videos, deepfake detection and emergency coordination are outside this release.
+```text
+Claim / article URL
+        │
+        ▼
+  Normalize + validate
+        │
+        ├── Article? ──► fetch public text ──► extract factual claims
+        │
+        ▼
+  Tavily evidence search  ◄── publisher excluded from its own article checks
+        │
+        ▼
+  Fetch + clean source text
+        │
+        ▼
+  Gemini compares evidence with claim
+        │
+        ▼
+  Validate citations + quotes against retrieved sources
+        │
+        ├── valid ──► Supported / Refuted / Mixed / Unverified
+        └── invalid ──► repair once, then abstain
+```
 
-The UI uses a dark editorial evidence desk with separate claim entry and source reading, serif typography, concise copy, and responsive navigation. Results put quoted evidence and source links first. History and activity reflect checks saved in this browser. The interface does not display uncalibrated model percentages or decorative system telemetry.
+Key guarantees:
+
+- Source IDs and quotations are validated against the retrieved corpus.
+- Invalid model output gets one repair attempt against the same sources.
+- Provider outages, quota failures, and timeouts return explicit retryable errors.
+- Opinions and unresolved predictions remain **Unverified**.
+- No numeric confidence is claimed.
+
+## Project structure
+
+```text
+apps/
+  api/                 Express + TypeScript API
+  web/                 React + Vite evidence desk
+  extension/           Optional Chrome/Edge extension
+packages/
+  shared/              Shared Zod schemas, types, and contracts
+scripts/               Dev, demo, build, benchmark, and test helpers
+eval/                  FEVER-derived validation dataset and validator
+tests/e2e/             Playwright browser tests
+docs/                  Architecture decisions and dependency notes
+api/index.js           Vercel serverless adapter
+```
+
+The frontend is intentionally small:
+
+```text
+apps/web/src/
+  app.tsx              App shell and check orchestration
+  dashboard.tsx        Navigation, claim composer, and layout
+  result.tsx           Finding and source evidence view
+  settings.tsx         Appearance, providers, extension, privacy
+  components/
+    ui.tsx             Shared badges, toasts, skeletons, artwork
+    commands.tsx       Command palette and keyboard help
+    history-view.tsx   Saved findings, filters, import/export
+    insights-view.tsx  Activity and verdict distribution
+  hooks.ts             Toasts, appearance, and modal focus management
+  types.ts             View models, verdict labels, provider catalog
+  api.ts               Typed API client and SSE progress stream
+  storage.ts           Browser history, JSON/CSV import/export
+  styles.css           Design tokens, fonts, reset
+  dashboard.css        Shell and workspace styles
+  polish.css           Motion, dialogs, toasts, responsive polish
+  product.css          Result, history, and insights styles
+```
 
 ## API
 
-| Method | Endpoint            | Behavior                                                                              |
-| ------ | ------------------- | ------------------------------------------------------------------------------------- |
-| GET    | /api/health         | Configuration readiness                                                               |
-| POST   | /api/analyze-claim  | JSON body with either text or pageUrl                                                 |
-| POST   | /api/extract-screen | PNG/JPEG data URL in image; returns visible text and up to three editable claims      |
-| GET    | /api/history        | Compatibility endpoint returning an empty array; private history stays in the browser |
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/health` | Configuration readiness |
+| `POST` | `/api/analyze-claim` | JSON body with `text` or `pageUrl` |
+| `POST` | `/api/v1/checks/stream` | Server-sent progress events followed by a result |
+| `POST` | `/api/v1/articles/claims` | Extract editable claims from a public article |
+| `POST` | `/api/extract-screen` | PNG/JPEG data URL; returns visible text and claims |
+| `GET` | `/api/history` | Compatibility endpoint; private history stays in the browser |
 
-Legacy /health, /analyze-claim and /history paths remain available. API responses use Cache-Control: no-store.
+Legacy `/health`, `/analyze-claim`, and `/history` paths remain available. API responses use `Cache-Control: no-store`.
 
 ```json
 { "text": "Lightning never strikes the same place twice." }
 ```
 
-A report contains id, input, input_type, verdict, summary, claims, source_count, checked_at, latency_ms, actual model and provider warnings. Each claim contains its verdict, explanation, evidence_strength, exact quoted evidence and retrieved source metadata. Citations select registered source excerpts; the server inserts their verbatim text and rejects unknown references. Invalid evidence gets one repair attempt against the same sources. Opinions and unresolved predictions remain unverified. No numeric confidence is claimed.
+A report contains the input, verdict, summary, per-claim findings, source count, timestamps, latency, model, and provider warnings. Each claim contains its verdict, explanation, evidence strength, exact quoted evidence, and retrieved source metadata.
 
-## Validate changes
+## Verification
 
 ```sh
-npm run check
+npm run check        # typecheck + Node tests + lint + production build
 npm run eval:validate
 npm audit
-npm run e2e          # needs a Playwright Chromium kernel; runs against the offline demo server
+npm run e2e          # needs a Playwright Chromium kernel
 ```
 
-The Node tests cover HTTP routes, validation, provider outages, evidence grounding, article extraction, private history, rate limiting, corrupted browser storage, and the extension's manifest, panel, background worker and website bridge. They use injected provider fixtures and never require real API keys. `npm run eval:validate` checks the 130-case FEVER-derived dataset and its recorded provenance offline; it does not measure accuracy. The Playwright specs cover the fixture UI, cancellation, recovery, export/import, keyboard shortcuts and responsive layout. GitHub Actions runs a `check` job (tests, lint, build, dataset validation, dependency audit) and an `e2e` job on pull requests and main.
+- **114 Node tests** cover HTTP routes, validation, provider outages, evidence grounding, article extraction, private history, rate limiting, corrupted browser storage, and the extension.
+- **`npm run eval:validate`** checks the 130-case FEVER-derived dataset and its recorded provenance offline. It does not measure accuracy.
+- **Playwright specs** cover the fixture UI, cancellation, recovery, export/import, keyboard shortcuts, and responsive layout.
+- **GitHub Actions** runs a `check` job and an `e2e` job on pull requests and `main`.
 
-## Optional browser extension
+## Deployment
 
-Settings includes a downloadable extension ZIP. Run `npm run extension:build` or `npm run build`, extract `apps/web/public/verity-extension.zip`, and load its folder through Chrome/Edge’s **Load unpacked**. You can also load `apps/extension` directly. The extension’s Preferences section has been removed.
+### Vercel
 
-Click the toolbar icon, choose **Search on screen**, and drag over a claim. Releasing the mouse crops the selected area, automatically extracts its claim, fills the field, and starts checking. Use selected text also starts checking automatically; right-click selection remains supported. After navigating to a new site, click the toolbar icon there to grant temporary page access. Closing the website does not disable the extension. Keep the browser and local backend running.
+Connect the repository to a Vercel project. Both the **repository root** and **`apps/web`** work as project roots; their `vercel.json` files build the Vite UI and route API requests to the same serverless Express handler.
 
-The extension stores up to 20 text reports locally and never stores screenshots. Reload the unpacked extension after updating its files. Public one-click installation requires a Chrome Web Store or Edge Add-ons listing; the current ZIP supports development installation. See the [extension guide](apps/extension/README.md).
+1. Add `GEMINI_API_KEY` and `TAVILY_API_KEY` as server-side environment variables for Preview and Production.
+2. Use the Vite framework preset and Node 22 or newer.
+3. Root deployments output to `apps/web/dist`; `apps/web` deployments output to `dist`.
+4. Redeploy after changing environment variables.
+5. Verify `/api/health` and submit a real claim. A `ready` health response confirms configuration presence, not provider quota.
 
-The server tries `GEMINI_FALLBACK_MODEL` when the primary model is busy or unavailable, preserving citation validation. Authentication and quota failures do not trigger model switching. `PUBMED_ENABLED=true` routes health claims to PubMed abstracts and excludes marked retracted publications. `WIKIDATA_ENABLED=true` grounds named entities through Wikidata, using a 24-hour entity cache and a 5-second request timeout. Configure `WIKIDATA_CONTACT_EMAIL` for its User-Agent. These are supporting evidence signals; provider outages retain available evidence and appear as warnings. API keys never reach the frontend or extension.
+### Docker
 
-`npm run benchmark` runs 30 real-provider cases against `BENCHMARK_URL` (default http://127.0.0.1:8080), writing to `work/benchmark-results.json` unless `BENCHMARK_OUTPUT` is set. It reports quotation counts and distinguishes citation-free abstention from evidence-free definitive verdicts. Retries are bounded and respect rate-limit responses. These are regression examples, not a general accuracy estimate.
+```sh
+docker compose up --build
+```
+
+The app listens on <http://127.0.0.1:8080>. Demo mode is enabled by default. Set `DEMO_MODE=false` and provide provider keys for live checks. Optional Postgres persistence is available through the `postgres` profile.
+
+## Browser extension
+
+Settings includes a downloadable extension ZIP. Build and load it with:
+
+```sh
+npm run extension:build
+```
+
+Extract `apps/web/public/verity-extension.zip`, then use **Load unpacked** in `chrome://extensions` or `edge://extensions`. You can also load `apps/extension` directly during development.
+
+Click the toolbar icon, choose **Search on screen**, and drag over a claim. Releasing the mouse crops the selection, extracts the claim, fills the field, and starts checking. Selected text and the right-click menu are also supported. The extension stores up to 20 text reports locally and never stores screenshots.
+
+Public one-click installation requires a Chrome Web Store or Edge Add-ons listing. The current ZIP supports development installation.
+
+## Privacy and safety
+
+- **Local history:** up to 50 validated reports in this browser’s `localStorage`. No account, no cross-device sync.
+- **Provider processing:** claim text and extracted article text are sent to Tavily and Gemini for analysis.
+- **No global server history:** submitted text and API keys are not logged by default.
+- **Server-side keys:** provider credentials never reach the frontend or extension.
+- **Network safety:** same-origin API access by default, bounded JSON input, public-domain URL validation, pinned public article addresses, redirect checks, and bounded downloads.
+- **Rate limits:** 10 checks per minute per IP per function instance. For public traffic, configure shared rate limits, Vercel Firewall, and provider spending limits.
+- **Scope:** text and article fact checking, plus visible claim extraction from screenshots. Image authenticity, video, deepfake detection, and emergency coordination are out of scope.
+
+## Design notes
+
+The interface is a dark editorial evidence desk: serif display type, restrained color, generous spacing, and source-first results. It avoids decorative telemetry and uncalibrated percentages. Light and system themes are available in Settings.
+
+The codebase follows a few deliberate rules:
+
+- One compiled TypeScript runtime for local Node and Vercel.
+- Shared Zod contracts for every external model/API boundary.
+- Browser-local state for private history.
+- Small, named modules over framework magic.
+- Tests use injected provider fixtures and never require real API keys.
+
+See [ADR-001](docs/ADR-001-evidence-grounding.md), [ADR-002](docs/ADR-002-security-boundaries.md), and [ADR-003](docs/ADR-003-runtime-and-deployment.md) for the reasoning behind the core contracts.
 
 ## License
 
-MIT.
+[MIT](LICENSE)

@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { once } = require("node:events");
 const { createApp } = require("../dist/app.js");
-const { ResultSchema, ApiErrorSchema } = require("@claimlens/shared");
+const { ResultSchema, ApiErrorSchema } = require("@verity/shared");
 const { ServiceError } = require("../dist/errors.js");
 const config = {
   geminiKey: "test",
@@ -203,6 +203,6 @@ test("metrics are stage histograms and privacy-safe counters", async (t) => {
   const { base } = await server(t);
   await post(base, "/api/v1/checks", { text: claim });
   const body = await (await fetch(base + "/metrics")).text();
-  assert.match(body, /claimlens_stage_duration_seconds_bucket/);
+  assert.match(body, /verity_stage_duration_seconds_bucket/);
   assert.doesNotMatch(body, /Lightning/);
 });

@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomBytes, createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { Pool } from "pg";
-import { ResultSchema, type Result } from "@claimlens/shared";
+import { ResultSchema, type Result } from "@verity/shared";
 import { ServiceError } from "./errors";
 import type { Config } from "./config";
 export interface Store {

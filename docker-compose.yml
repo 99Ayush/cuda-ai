@@ -1,5 +1,5 @@
 services:
-  claimlens:
+  verity:
     build: .
     ports:
       - "127.0.0.1:8080:8080"
@@ -8,26 +8,26 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       TAVILY_API_KEY: ${TAVILY_API_KEY:-}
       PERSISTENCE_ENABLED: ${PERSISTENCE_ENABLED:-false}
-      DATABASE_PATH: /app/data/claimlens.sqlite
+      DATABASE_PATH: /app/data/verity.sqlite
       MAX_CONCURRENCY: ${MAX_CONCURRENCY:-4}
       MAX_PROVIDER_CALLS: ${MAX_PROVIDER_CALLS:-1000}
     volumes:
-      - claimlens-data:/app/data
+      - verity-data:/app/data
     restart: unless-stopped
   postgres:
     image: postgres:17-alpine
     profiles: [postgres]
     environment:
-      POSTGRES_DB: claimlens
-      POSTGRES_USER: claimlens
+      POSTGRES_DB: verity
+      POSTGRES_USER: verity
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-change-me}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U claimlens"]
+      test: ["CMD-SHELL", "pg_isready -U verity"]
       interval: 10s
       timeout: 5s
       retries: 5
 volumes:
-  claimlens-data:
+  verity-data:
   postgres-data:

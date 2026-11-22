@@ -60,11 +60,6 @@ function build() {
   fs.mkdirSync(target, { recursive: true });
   for (const [name, data] of entries) fs.writeFileSync(path.join(target, name), data);
   fs.writeFileSync(path.join(publicDir, "verity-extension.zip"), zip(entries));
-  // Keep existing unpacked installations and old download links up to date.
-  const legacy = path.join(publicDir, "claimlens-extension");
-  fs.mkdirSync(legacy, { recursive: true });
-  for (const [name, data] of entries) fs.writeFileSync(path.join(legacy, name), data);
-  fs.writeFileSync(path.join(publicDir, "claimlens-extension.zip"), zip(entries));
   console.log(`Packaged Verity extension (${entries.length} files).`);
 }
 if (require.main === module) build();

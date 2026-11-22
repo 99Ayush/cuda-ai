@@ -5,7 +5,7 @@ import {
   type Result,
   type CheckInput,
   type ProgressEvent,
-} from "@claimlens/shared";
+} from "@verity/shared";
 const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 function failure(
   error: unknown,

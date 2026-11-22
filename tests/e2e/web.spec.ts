@@ -138,7 +138,7 @@ test("every view fits desktop, mobile and landscape without runtime errors", asy
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Investigate", exact: true }).click();
-  await page.screenshot({ path: info.outputPath("claimlens-desktop.png") });
+  await page.screenshot({ path: info.outputPath("verity-desktop.png") });
   expect(errors).toEqual([]);
 });
 
@@ -154,11 +154,11 @@ test("appearance preferences, titles and public metadata work", async ({ page })
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.getByLabel("Colour preference").selectOption("dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  for (const path of ["/privacy.html", "/terms.html", "/favicon.svg", "/og-claimlens.png"])
+  for (const path of ["/privacy.html", "/terms.html", "/favicon.svg", "/og-verity.png"])
     expect((await page.request.get(path)).status()).toBe(200);
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
     "content",
-    /og-claimlens.png$/,
+    /og-verity.png$/,
   );
 });
 

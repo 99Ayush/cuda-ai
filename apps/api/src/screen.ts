@@ -1,4 +1,4 @@
-import { ScreenSchema } from "@claimlens/shared";
+import { ScreenSchema } from "@verity/shared";
 import { ServiceError } from "./errors";
 import { resolveConfig, type EngineConfig } from "./config";
 import type { Providers, EngineOptions } from "./types";

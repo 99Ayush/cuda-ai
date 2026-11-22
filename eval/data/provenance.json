@@ -1,0 +1,20 @@
+{
+  "built_at": "2026-11-20T21:24:38.559Z",
+  "source": "https://fever.ai/download/fever/paper_test.jsonl",
+  "source_revision": "2a74f2909caf2b8656343aeb8203e50bf84dcb56",
+  "source_sha256": "fb7b0280a0adc2302bbb29bfb7af37274fa585de3171bcf908f180642d11d88e",
+  "source_rows": 9999,
+  "cases": 130,
+  "categories": {
+    "fever": 100,
+    "derived_mixed": 10,
+    "adversarial": 10,
+    "policy_opinion": 5,
+    "time_sensitive": 5
+  },
+  "notes": [
+    "100 original published labels; mixed and adversarial labels have explicit derivation records.",
+    "Opinion/future labels test declared abstention policy rather than empirical factual accuracy.",
+    "This is not the full FEVER benchmark."
+  ]
+}

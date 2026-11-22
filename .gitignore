@@ -31,7 +31,7 @@ Thumbs.db
 # Testing
 coverage/
 work/
-data/
+/data/
 test-results/
 playwright-report/
 eval/results/
